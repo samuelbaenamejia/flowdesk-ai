@@ -5,7 +5,8 @@
 > Sesión: 2026-07-22 — PR #1: database bootstrap (feature/database-bootstrap) → merged to main
 > Sesión: 2026-07-22 — PR #2: Contact model + migration (feature/contact-model) → merged to main
 > Sesión: 2026-07-23 — PR #3: Contacts API endpoints (feature/api-core) → merged to main
-> Sesión: 2026-07-23 — Post-merge: ramas limpiadas, repo preparado para PR #4
+> Sesión: 2026-07-23 — PR #4: Conversation model + migration (feature/conversation-model) → merged to main
+> Sesión: 2026-07-23 — Post-merge: ramas limpiadas, repo preparado para PR #5
 
 ---
 
@@ -107,7 +108,8 @@
 | 2 — PR #1: Persistencia (base) | ✅ Completado | SQLAlchemy async, Alembic, config DATABASE_URL |
 | 2 — PR #2: Modelo Contact + migración | ✅ Completado + merged | Contact model + migración + test CRUD. Mergeado en main (42ac97b) |
 | 3 — PR #3: Contacts API | ✅ Completado + merged | Endpoints GET y PATCH para contacts. Mergeado en main (e376f54) |
-| 3 — PR #4: Conversation Model | ⏳ En progreso | Modelo Conversation + migración |
+| 3 — PR #4: Conversation Model | ✅ Completado + merged | Modelo Conversation + migración. Mergeado en main |
+| 3 — PR #5: Conversations API | ⏳ Pendiente | Endpoints de conversaciones (depende de DT-01, DT-02) |
 | 4 — Frontend funcional | ⏳ Pendiente | Dashboard, login, conversaciones |
 | 5 — n8n + WhatsApp | ⏳ Pendiente | Workflow de recepción y envío |
 | 6 — Integración IA | ⏳ Pendiente | Conexión con Groq, generación de respuestas |
@@ -118,19 +120,18 @@
 
 ## Próximo objetivo
 
-El siguiente trabajo es el **PR #4 del Sprint 3** (Conversation Model).
+El siguiente trabajo es el **PR #5 del Sprint 3** (Conversations API).
 
-**Objetivo del PR#4:** Crear el modelo Conversation y su migración.
+**Objetivo del PR#5:** Crear los endpoints de conversaciones (GET list, GET by id, PATCH status).
 
 **Alcance exacto:**
-- Crear `backend/app/models/conversation.py` (modelo SQLAlchemy)
-- Actualizar `backend/app/models/__init__.py` para exportar Conversation
-- Generar migración Alembic para tabla `conversations`
-- Aplicar migración contra Supabase
-- Verificar estructura de tabla en DB
+- Crear `backend/app/api/v1/conversations.py` (endpoints GET, GET by id, PATCH status)
+- Crear esquemas Pydantic para request/response
+- Evaluar y resolver DT-01 (relationship) y DT-02 (índice)
+- Añadir router de conversaciones en `backend/app/api/v1/__init__.py`
 
-**Fuera del PR #4:**
-- ❌ Endpoints de conversaciones (PR #5)
+**Fuera del PR #5:**
+- ❌ Endpoints de mensajes (PR separado)
 - ❌ Autenticación
 - ❌ WhatsApp
 - ❌ n8n
@@ -234,6 +235,15 @@ docs/SESSION_HANDOFF.md
 | R-05 | **Scope creep** (querer añadir más features al MVP) | Alta | Medio | MVP_DEFINITION.md como contrato; cambios requieren aprobación |
 | R-06 | **Python 3.12 vs 3.14** (entorno local vs Docker) | Baja | Bajo | Docker usa 3.12-slim; entorno local puede ser 3.12+ |
 | R-07 | **IPv6-only Supabase** host no resoluble desde Windows | Alta | Resuelto | Usar Session Pooler (Supavisor) en `aws-0-sa-east-1.pooler.supabase.com:5432` |
+
+---
+
+## Deuda técnica
+
+| ID | Deuda técnica | PR asociado | Prioridad | Notas |
+|----|---------------|-------------|:---------:|-------|
+| DT-01 | Añadir `relationship()` entre Contact y Conversation | PR #5 | Media | YAGNI en PR #4; evaluar si endpoints lo necesitan |
+| DT-02 | Añadir índice sobre `conversations.contact_id` | PR #5 | Baja | Solo si endpoints realizan búsquedas frecuentes por contacto |
 
 ---
 
@@ -345,13 +355,23 @@ npm run dev
 - [x] Commit y push (587635b)
 - [x] Merge a main (e376f54)
 
-**Sprint 3 — PR #4: Conversation Model** ⏳ En progreso
+**Sprint 3 — PR #4: Conversation Model** ✅ Completado + merged to main
 
-- [ ] Crear `backend/app/models/conversation.py`
-- [ ] Actualizar `backend/app/models/__init__.py`
-- [ ] Generar migración Alembic
-- [ ] Aplicar migración contra Supabase
-- [ ] Verificar estructura de tabla
+- [x] Crear `backend/app/models/conversation.py`
+- [x] Actualizar `backend/app/models/__init__.py`
+- [x] Generar migración Alembic
+- [x] Aplicar migración contra Supabase
+- [x] Verificar estructura de tabla
+- [x] Code review
+- [x] Commit y push (3ff3d48)
+
+**Sprint 3 — PR #5: Conversations API** ⏳ Pendiente
+
+- [ ] Evaluar DT-01: relationship Contact ↔ Conversation
+- [ ] Evaluar DT-02: índice sobre conversations.contact_id
+- [ ] Crear `backend/app/api/v1/conversations.py`
+- [ ] Crear esquemas Pydantic para conversations
+- [ ] Añadir router en `backend/app/api/v1/__init__.py`
 
 ---
 
@@ -359,7 +379,7 @@ npm run dev
 
 ### Estado actual
 
-Proyecto FlowDesk-AI. Plataforma de atención automática empresarial vía WhatsApp. Fase 0 completada. Sprint 1 completado. Sprint 2 completado (PR #1: persistencia async + PR #2: Contact model). Sprint 3 en progreso (PR #3: Contacts API merged a main). Conexión a Supabase resuelta via Session Pooler IPv4. Rama main actualizada. Preparado para PR #4 (Conversation Model).
+Proyecto FlowDesk-AI. Plataforma de atención automática empresarial vía WhatsApp. Fase 0 completada. Sprint 1 completado. Sprint 2 completado (PR #1: persistencia async + PR #2: Contact model). Sprint 3 en progreso (PR #3: Contacts API + PR #4: Conversation model, ambos merged a main). Conexión a Supabase resuelta via Session Pooler IPv4. Rama main actualizada. Preparado para PR #5 (Conversations API).
 
 ### Stack definitivo
 
@@ -445,13 +465,17 @@ Modelo Contact y migración creados. Migración aplicada contra Supabase. Test C
 
 Endpoints GET y PATCH para contacts implementados. Verificados contra Supabase (GET 200, PATCH 200, 404 para inexistentes). Code review aprobado. Mergeado a main (e376f54).
 
-### Qué sí hacer (PR #4)
+### Objetivo del PR #4 (completado)
 
-- ✅ Crear `backend/app/models/conversation.py` (modelo SQLAlchemy)
-- ✅ Actualizar `backend/app/models/__init__.py`
-- ✅ Generar migración Alembic para tabla `conversations`
-- ✅ Aplicar migración contra Supabase
-- ✅ Verificar estructura de tabla en DB
+Modelo Conversation y migración creados. Tabla `conversations` verificada en Supabase (6 columnas, FK → contacts.id, PK uuid). Code review aprobado. Mergeado a main.
+
+### Qué sí hacer (PR #5)
+
+- ✅ Evaluar DT-01: relationship Contact ↔ Conversation
+- ✅ Evaluar DT-02: índice sobre conversations.contact_id
+- ✅ Crear `backend/app/api/v1/conversations.py` (endpoints GET, GET by id, PATCH status)
+- ✅ Crear esquemas Pydantic para conversations
+- ✅ Añadir router en `backend/app/api/v1/__init__.py`
 
 ### Restricciones vigentes
 

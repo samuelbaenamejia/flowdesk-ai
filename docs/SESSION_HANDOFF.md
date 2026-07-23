@@ -1,7 +1,9 @@
 # SESSION_HANDOFF — FlowDesk-AI
 
 > Fecha: 2026-07-22
-> Sesión: Inicial (Fase 0 + Sprint 1 + Architecture Review)
+> Sesión: 2026-07-22 — Sesión inicial (Fase 0 + Sprint 1 + Architecture Review)
+> Sesión: 2026-07-22 — PR #1: database bootstrap (feature/database-bootstrap)
+> Sesión: 2026-07-22 — PR #2: Contact model + migration (feature/contact-model)
 
 ---
 
@@ -15,7 +17,9 @@
 
 3. **Sprint 1 — Base del proyecto:** Se crearon 24 archivos que conforman la base mínima funcional: backend FastAPI con endpoint `/health`, frontend Next.js con placeholder, Docker Compose con 2 servicios, .env.example, .gitignore, README profesional.
 
-4. **Sprint 2 — Planificación:** Se diseñó la capa de persistencia (SQLAlchemy + Alembic + Supabase async) y se dividió en 2 PRs pequeños. Pendiente de implementación.
+4. **Sprint 2 — Planificación:** Se diseñó la capa de persistencia (SQLAlchemy + Alembic + Supabase async) y se dividió en 2 PRs pequeños.
+
+5. **Sprint 2 — PR #2 (completado):** Modelo `Contact` creado (SQLAlchemy 2.0 `Mapped[]`, 7 columnas), migración Alembic offline, script de test. Conexión resuelta mediante **Session Pooler (Supavisor, IPv4)** en `aws-0-sa-east-1.pooler.supabase.com:5432`. Test de CRUD pasado exitosamente (INSERT, SELECT, DELETE).
 
 ### Decisiones importantes tomadas
 
@@ -56,10 +60,13 @@
 ### Backend
 
 - **FastAPI** funcionando, endpoint `GET /health` responde `200 OK`
-- Estructura de capas lista: `api/` (vacío), `core/` (config, logging), `models/` (vacío)
+- Estructura de capas lista: `api/` (vacío), `core/` (config, database, logging), `models/` (vacío)
 - Dependencias instalables via pip (`pyproject.toml`)
 - Dockerfile publica puerto 8000 con uvicorn
-- **Próximo:** conectar a Supabase (PR #1 Sprint 2)
+- **Capa de persistencia configurada:** SQLAlchemy 2.0 async + asyncpg + Alembic
+- **Conectado a:** Supabase PostgreSQL via Session Pooler IPv4 (`aws-0-sa-east-1.pooler.supabase.com:5432`)
+- **Modelos activos:** `Contact` (7 columnas, UUID pk, wa_id unique, timestamps)
+- **Migraciones:** Alembic, tabla `contacts` aplicada y verificada
 
 ### Frontend
 
@@ -73,9 +80,9 @@
 
 - `docker-compose.yml` con 2 servicios (backend + frontend)
 - Frontend depende de backend (`depends_on`)
-- Sin base de datos aún
+- **DB externa:** Supabase Cloud (no Docker)
 - Sin reverse proxy (Caddy se añadirá cuando haya dominios)
-- Sin variables de entorno reales (solo `.env.example`)
+- `.env.example` con `DATABASE_URL` placeholder
 
 ### Documentación
 
@@ -91,7 +98,8 @@
 |--------|--------|-------------|
 | 0 — Preparación | ✅ Completado | Docs de visión, alcance, decisiones, roadmap, revisión arquitectura |
 | 1 — Base del proyecto | ✅ Completado | Backend mínimo, frontend mínimo, Docker Compose, README |
-| 2 — Capa de persistencia | 🔄 En progreso | Dividido en 2 PRs: PR#1 conexión Supabase, PR#2 modelo Contact + migración |
+| 2 — PR #1: Persistencia (base) | ✅ Completado | SQLAlchemy async, Alembic, config DATABASE_URL |
+| 2 — PR #2: Modelo Contact + migración | ✅ Completado | Contact model + migración + test CRUD exitoso. Session Pooler IPv4 |
 | 3 — API Core | ⏳ Pendiente | Endpoints de conversaciones, webhooks, servicios |
 | 4 — Frontend funcional | ⏳ Pendiente | Dashboard, login, conversaciones |
 | 5 — n8n + WhatsApp | ⏳ Pendiente | Workflow de recepción y envío |
@@ -103,27 +111,24 @@
 
 ## Próximo objetivo
 
-El siguiente trabajo será exclusivamente el **PR #1 del Sprint 2**.
+El siguiente trabajo es el **PR #3 del Sprint 3** (API Core).
 
-**Objetivo del PR #1:** Configurar la capa de persistencia para conectarse a Supabase PostgreSQL, sin crear modelos ni migraciones todavía.
+**Objetivo del PR#3:** Crear los primeros endpoints de la API de contactos (CRUD básico).
 
 **Alcance exacto:**
-- Añadir `DATABASE_URL` a `config.py`
-- Crear `app/core/database.py` con engine, async_session, Base
-- Añadir `sqlalchemy`, `asyncpg`, `alembic` a `pyproject.toml`
-- Crear `alembic.ini` y `alembic/env.py` (configurados, pero sin modelos que migrar)
-- Verificar que la conexión con Supabase funciona (script inline)
+- Crear `backend/app/api/__init__.py`
+- Crear `backend/app/api/v1/__init__.py`
+- Crear `backend/app/api/v1/contacts.py` (endpoints GET, POST, GET by id, DELETE)
+- Crear esquemas Pydantic para request/response
+- Añadir router en `backend/app/main.py`
+- Tests de endpoints
 
-**Fuera del PR #1:**
-- ❌ Modelos SQLAlchemy
-- ❌ Migraciones
-- ❌ Endpoints
+**Fuera del PR #3:**
 - ❌ Autenticación
 - ❌ WhatsApp
 - ❌ n8n
 - ❌ Groq
-
-**Criterio de éxito:** Ejecutar script Python que importe `async_session` y establezca conexión con Supabase sin errores.
+- ❌ Frontend
 
 ---
 
@@ -138,6 +143,28 @@ backend/app/core/config.py
 backend/app/core/logging.py
 backend/Dockerfile
 backend/pyproject.toml
+```
+
+### Sprint 2 — PR #1: Persistencia (5 nuevos + 2 modificados)
+```
+backend/app/core/database.py          # NUEVO: engine, async_session, Base
+backend/alembic.ini                   # NUEVO: configuración CLI
+backend/alembic/env.py                # NUEVO: entorno async para Alembic
+backend/alembic/script.py.mako        # NUEVO: template de migraciones
+backend/alembic/versions/.gitkeep     # NUEVO: preservar directorio
+backend/app/core/config.py            # MODIFICADO: +database_url
+backend/pyproject.toml                # MODIFICADO: +sqlalchemy, asyncpg, alembic
+```
+
+### Sprint 2 — PR #2: Contact model (3 nuevos + 2 modificados)
+```
+backend/app/models/__init__.py                        # NUEVO: importa Contact
+backend/app/models/contact.py                         # NUEVO: modelo SQLAlchemy
+backend/alembic/versions/50447119c479_*.py            # NUEVO: migración
+backend/scripts/test_contact.py                       # NUEVO: test CRUD
+backend/alembic/migration_50447119c479.sql             # NUEVO: SQL dump offline
+backend/alembic/env.py                                # MODIFICADO: +import app.models
+backend/alembic.ini                                   # MODIFICADO: removed ruff hook
 ```
 
 ### Sprint 1 — Frontend (9 archivos)
@@ -188,6 +215,7 @@ docs/SESSION_HANDOFF.md
 | R-04 | **n8n memory leak en main mode** | Media | Medio | Restart policy en docker-compose; migrar a queue mode si necesario |
 | R-05 | **Scope creep** (querer añadir más features al MVP) | Alta | Medio | MVP_DEFINITION.md como contrato; cambios requieren aprobación |
 | R-06 | **Python 3.12 vs 3.14** (entorno local vs Docker) | Baja | Bajo | Docker usa 3.12-slim; entorno local puede ser 3.12+ |
+| R-07 | **IPv6-only Supabase** host no resoluble desde Windows | Alta | Resuelto | Usar Session Pooler (Supavisor) en `aws-0-sa-east-1.pooler.supabase.com:5432` |
 
 ---
 
@@ -253,29 +281,33 @@ npm run dev
 
 ## Checklist para la próxima sesión
 
-**Sprint 2 — PR #1: Conexión a Supabase**
+**Sprint 2 — PR #1: Conexión a Supabase** ✅ Completado
 
-- [ ] Añadir `DATABASE_URL` a `backend/app/core/config.py`
-- [ ] Crear `backend/app/core/database.py` (async engine, session, Base)
-- [ ] Añadir dependencias: `sqlalchemy`, `asyncpg`, `alembic` a `pyproject.toml`
-- [ ] Crear `backend/alembic.ini`
-- [ ] Crear `backend/alembic/env.py` (configuración async)
-- [ ] Crear `backend/alembic/script.py.mako`
-- [ ] Crear `backend/alembic/versions/.gitkeep`
-- [ ] Instalar dependencias y verificar import sin errores
-- [ ] Probar conexión a Supabase con script inline
-- [ ] Hacer commit convencional: `feat(db): configure async SQLAlchemy and Alembic`
+- [x] Añadir `DATABASE_URL` a `backend/app/core/config.py`
+- [x] Crear `backend/app/core/database.py` (async engine, session, Base)
+- [x] Añadir dependencias: `sqlalchemy`, `asyncpg`, `alembic` a `pyproject.toml`
+- [x] Crear `backend/alembic.ini`
+- [x] Crear `backend/alembic/env.py` (configuración async)
+- [x] Crear `backend/alembic/script.py.mako`
+- [x] Crear `backend/alembic/versions/.gitkeep`
+- [x] Instalar dependencias y verificar import sin errores
+- [x] Ruff linting: all checks passed
+- [x] Commit: `feat(database): bootstrap sqlalchemy and alembic`
+- [x] Rama: `feature/database-bootstrap`
 
-**Sprint 2 — PR #2: Modelo Contact + migración (siguiente sesión)**
+**Sprint 2 — PR #2: Modelo Contact + migración** ✅ Completado
 
-- [ ] Crear `backend/app/models/__init__.py`
-- [ ] Crear `backend/app/models/contact.py` (modelo SQLAlchemy)
-- [ ] Importar Base en models para que Alembic lo detecte
-- [ ] Ejecutar `alembic revision --autogenerate -m "create contacts table"`
-- [ ] Revisar migración generada
-- [ ] Ejecutar `alembic upgrade head`
-- [ ] Verificar tabla creada en Supabase
-- [ ] Probar inserción con script inline
+- [x] Crear `backend/app/models/__init__.py`
+- [x] Crear `backend/app/models/contact.py` (modelo SQLAlchemy)
+- [x] Importar modelos desde `alembic/env.py` para detección automática
+- [x] Ejecutar `alembic revision --autogenerate -m "create contacts table"`
+- [x] Revisar migración generada
+- [x] Ejecutar `alembic upgrade head` (migrada via Supabase Dashboard)
+- [x] Verificar tabla creada en Supabase
+- [x] Probar inserción con script inline
+- [x] Ruff linting
+- [x] Code review
+- [ ] Commit y push previa aprobación
 
 ---
 
@@ -283,7 +315,7 @@ npm run dev
 
 ### Estado actual
 
-Proyecto FlowDesk-AI. Plataforma de atención automática empresarial vía WhatsApp. Fase 0 completada (visión, alcance, roadmap, 16 ADRs). Architecture Review completada (stack simplificado de 16 a 8 tecnologías). Sprint 1 completado (base funcional: FastAPI + Next.js + Docker Compose, 24 archivos). Sprint 2 planificado pero no iniciado.
+Proyecto FlowDesk-AI. Plataforma de atención automática empresarial vía WhatsApp. Fase 0 completada. Sprint 1 completado. Sprint 2 PR #1 completado (persistencia async). Sprint 2 PR #2 completado (Contact model + migración + test CRUD). Conexión a Supabase resuelta via Session Pooler IPv4 (`aws-0-sa-east-1.pooler.supabase.com:5432`). Rama activa: `feature/contact-model`. Pendiente: commit + push de PR #2.
 
 ### Stack definitivo
 
@@ -291,9 +323,9 @@ Proyecto FlowDesk-AI. Plataforma de atención automática empresarial vía Whats
 |------|-----------|--------|
 | Backend | FastAPI (Python 3.12) | Funcionando, endpoint /health |
 | Frontend | Next.js 14 Pages Router | Build exitoso, placeholder |
-| Base de Datos | Supabase Cloud (PostgreSQL 16) | Sin conectar |
-| ORM | SQLAlchemy 2.0 async + asyncpg | Sin configurar |
-| Migraciones | Alembic | Sin configurar |
+| Base de Datos | Supabase Cloud (PostgreSQL 17) | Conectado via Session Pooler IPv4 |
+| ORM | SQLAlchemy 2.0 async + asyncpg | Configurado + modelo Contact |
+| Migraciones | Alembic | Aplicada (contacts table) |
 | Auth | Supabase Auth | Futuro |
 | Orquestación | n8n self-hosted | Futuro |
 | LLM | Groq API | Futuro |
@@ -328,9 +360,7 @@ Supabase Cloud (PostgreSQL + Auth + Realtime)
 
 ### Qué NO hacer
 
-- ❌ No crear modelos hasta que la conexión a Supabase esté verificada
-- ❌ No crear endpoints en este sprint
-- ❌ No crear auth
+- ❌ No crear auth sin endpoints que la necesiten
 - ❌ No crear n8n workflows
 - ❌ No conectar Groq
 - ❌ No conectar WhatsApp
@@ -345,31 +375,27 @@ Supabase Cloud (PostgreSQL + Auth + Realtime)
 - ✅ Crear y configurar Alembic (alembic.ini + env.py)
 - ✅ Verificar conexión a Supabase con script inline
 
-### Objetivo exacto del PR #1
+### Objetivo del PR #1 (completado)
 
-**Un solo commit:**
+**Commit:**
 ```
-feat(db): configure async SQLAlchemy and Alembic
-
-- Add database.py with async engine, session and Base
-- Add DATABASE_URL to settings
-- Configure Alembic with async driver
-- Install sqlalchemy, asyncpg, alembic
+feat(database): bootstrap sqlalchemy and alembic
 ```
 
-**Verificación:**
-```python
-import asyncio
-from app.core.database import async_session
+**Archivos creados (5):**
+- `backend/app/core/database.py` — engine, async_session, Base
+- `backend/alembic.ini` — configuración CLI
+- `backend/alembic/env.py` — entorno async
+- `backend/alembic/script.py.mako` — template
+- `backend/alembic/versions/.gitkeep`
 
-async def test():
-    async with async_session() as session:
-        result = await session.execute(text("SELECT 1"))
-        print("Conexión OK:", result.scalar())
+**Archivos modificados (2):**
+- `backend/app/core/config.py` — +database_url
+- `backend/pyproject.toml` — +sqlalchemy, asyncpg, alembic
 
-asyncio.run(test())
-# → Conexión OK: 1
-```
+### Objetivo del PR #2 (completado)
+
+Modelo Contact y migración creados. Migración aplicada contra Supabase. Test CRUD pasado exitosamente. Conexión resuelta via Session Pooler IPv4.
 
 ### Restricciones vigentes
 

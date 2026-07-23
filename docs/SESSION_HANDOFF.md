@@ -1,9 +1,10 @@
 # SESSION_HANDOFF — FlowDesk-AI
 
-> Fecha: 2026-07-22
+> Fecha: 2026-07-23
 > Sesión: 2026-07-22 — Sesión inicial (Fase 0 + Sprint 1 + Architecture Review)
-> Sesión: 2026-07-22 — PR #1: database bootstrap (feature/database-bootstrap)
-> Sesión: 2026-07-22 — PR #2: Contact model + migration (feature/contact-model)
+> Sesión: 2026-07-22 — PR #1: database bootstrap (feature/database-bootstrap) → merged to main
+> Sesión: 2026-07-22 — PR #2: Contact model + migration (feature/contact-model) → merged to main
+> Sesión: 2026-07-23 — Post-merge: ramas limpiadas, repo preparado para Sprint 3
 
 ---
 
@@ -99,7 +100,7 @@
 | 0 — Preparación | ✅ Completado | Docs de visión, alcance, decisiones, roadmap, revisión arquitectura |
 | 1 — Base del proyecto | ✅ Completado | Backend mínimo, frontend mínimo, Docker Compose, README |
 | 2 — PR #1: Persistencia (base) | ✅ Completado | SQLAlchemy async, Alembic, config DATABASE_URL |
-| 2 — PR #2: Modelo Contact + migración | ✅ Completado | Contact model + migración + test CRUD exitoso. Session Pooler IPv4 |
+| 2 — PR #2: Modelo Contact + migración | ✅ Completado + merged | Contact model + migración + test CRUD. Mergeado en main (42ac97b) |
 | 3 — API Core | ⏳ Pendiente | Endpoints de conversaciones, webhooks, servicios |
 | 4 — Frontend funcional | ⏳ Pendiente | Dashboard, login, conversaciones |
 | 5 — n8n + WhatsApp | ⏳ Pendiente | Workflow de recepción y envío |
@@ -295,7 +296,7 @@ npm run dev
 - [x] Commit: `feat(database): bootstrap sqlalchemy and alembic`
 - [x] Rama: `feature/database-bootstrap`
 
-**Sprint 2 — PR #2: Modelo Contact + migración** ✅ Completado
+**Sprint 2 — PR #2: Modelo Contact + migración** ✅ Completado + merged to main
 
 - [x] Crear `backend/app/models/__init__.py`
 - [x] Crear `backend/app/models/contact.py` (modelo SQLAlchemy)
@@ -307,7 +308,8 @@ npm run dev
 - [x] Probar inserción con script inline
 - [x] Ruff linting
 - [x] Code review
-- [ ] Commit y push previa aprobación
+- [x] Commit y push (25f7ba2)
+- [x] Merge a main (42ac97b)
 
 ---
 
@@ -315,7 +317,7 @@ npm run dev
 
 ### Estado actual
 
-Proyecto FlowDesk-AI. Plataforma de atención automática empresarial vía WhatsApp. Fase 0 completada. Sprint 1 completado. Sprint 2 PR #1 completado (persistencia async). Sprint 2 PR #2 completado (Contact model + migración + test CRUD). Conexión a Supabase resuelta via Session Pooler IPv4 (`aws-0-sa-east-1.pooler.supabase.com:5432`). Rama activa: `feature/contact-model`. Pendiente: commit + push de PR #2.
+Proyecto FlowDesk-AI. Plataforma de atención automática empresarial vía WhatsApp. Fase 0 completada. Sprint 1 completado. Sprint 2 completado (PR #1: persistencia async + PR #2: Contact model, ambos merged a main). Conexión a Supabase resuelta via Session Pooler IPv4. Rama main actualizada. Preparado para Sprint 3 (API Core).
 
 ### Stack definitivo
 

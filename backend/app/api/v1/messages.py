@@ -14,6 +14,11 @@ from app.models.conversation import Conversation
 from app.models.message import Message
 from app.schemas.message import MessageCreate, MessageResponse
 
+_META_STATUS_MAP = {
+    400: 400,
+    401: 401,
+    429: 503,
+}
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
@@ -103,7 +108,7 @@ async def create_message(
 
     try:
         await db.commit()
-    except IntegrityError:
+    except IntegrityError as exc:
         await db.rollback()
         logger.warning(
             "whatsapp.send: mensaje duplicado conversation_id=%s",
@@ -112,7 +117,7 @@ async def create_message(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Message creation failed due to integrity constraint",
-        )
+        ) from exc
 
     await db.refresh(message)
     logger.info(
@@ -124,18 +129,20 @@ async def create_message(
     try:
         wa_message_id = await send_text_message(contact.wa_id, payload.content)
     except WhatsAppSendError as exc:
+        http_status = _META_STATUS_MAP.get(exc.status_code, 502)
         logger.error(
             "whatsapp.send: error Meta conversation_id=%s message_id=%s "
-            "meta_status=%s detail=%s",
+            "meta_status=%s http_status=%s detail=%s",
             conversation_id,
             message.id,
             exc.status_code,
+            http_status,
             exc.detail,
         )
         raise HTTPException(
-            status_code=exc.status_code,
+            status_code=http_status,
             detail=f"WhatsApp API error: {exc.detail}",
-        )
+        ) from exc
 
     logger.info(
         "whatsapp.send: enviado a Meta conversation_id=%s wa_message_id=%s",
@@ -149,7 +156,7 @@ async def create_message(
 
     try:
         await db.commit()
-    except Exception:
+    except Exception as exc:
         logger.exception(
             "whatsapp.send: commit fase 3 falló conversation_id=%s "
             "wa_message_id=%s",
@@ -157,9 +164,9 @@ async def create_message(
             wa_message_id,
         )
         raise HTTPException(
-            status_code=status.HTTP_202_ACCEPTED,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Message sent to WhatsApp but database update failed",
-        )
+        ) from exc
 
     await db.refresh(message)
     logger.info(

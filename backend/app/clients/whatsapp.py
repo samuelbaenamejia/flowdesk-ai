@@ -37,13 +37,16 @@ async def send_text_message(to: str, text: str) -> str:
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
             response = await client.post(url, json=payload, headers=headers)
-        except httpx.TimeoutException:
-            raise WhatsAppSendError(503, "Timeout al conectar con WhatsApp API")
-        except httpx.ConnectError:
-            raise WhatsAppSendError(503, "Error de red al conectar con WhatsApp API")
+        except httpx.TimeoutException as exc:
+            raise WhatsAppSendError(503, "Timeout al conectar con WhatsApp API") from exc
+        except httpx.ConnectError as exc:
+            raise WhatsAppSendError(503, "Error de red al conectar con WhatsApp API") from exc
 
         if response.status_code == 200:
             data = response.json()
-            return data["messages"][0]["id"]
+            try:
+                return data["messages"][0]["id"]
+            except (KeyError, IndexError, TypeError) as exc:
+                raise WhatsAppSendError(502, f"Respuesta Meta inválida: {response.text}") from exc
 
         raise WhatsAppSendError(response.status_code, response.text)

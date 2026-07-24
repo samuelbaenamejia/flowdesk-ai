@@ -5,6 +5,8 @@ class Settings(BaseSettings):
     environment: str = "development"
     backend_port: int = 8000
     database_url: str
+    whatsapp_verify_token: str = ""
+    whatsapp_phone_number_id: str = ""
 
     class Config:
         env_file = ".env"

@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.clients.groq import GroqError, generate_response
 from app.clients.whatsapp import WhatsAppSendError, send_text_message
 from app.core.config import settings
 from app.models.contact import Contact
@@ -12,6 +13,8 @@ from app.models.conversation import Conversation
 from app.models.message import Message
 
 logger = logging.getLogger(__name__)
+
+FALLBACK_RESPONSE = "Lo siento, estoy teniendo problemas técnicos. Un agente te atenderá en breve."
 
 
 async def get_conversation_history(
@@ -130,3 +133,45 @@ async def send_outgoing_message(
     )
 
     return message
+
+
+async def process_incoming_and_respond(
+    conversation_id: uuid.UUID,
+    user_message: str,
+    db: AsyncSession,
+) -> None:
+    """
+    Flujo completo: genera respuesta con Groq y envía vía WhatsApp.
+    Invocado desde webhook tras persistir mensaje entrante.
+    """
+    # 1. Obtener historial
+    history = await get_conversation_history(conversation_id, db)
+
+    # 2. Construir mensajes para Groq
+    messages = [
+        {"role": "system", "content": settings.groq_system_prompt},
+        *history,
+        {"role": "user", "content": user_message},
+    ]
+
+    # 4. Enviar respuesta (usa fallback si Groq falla)
+    try:
+        response_text = await generate_response(messages)
+    except GroqError as exc:
+        logger.error(
+            "llm.generate falló conversation_id=%s status=%s detail=%s",
+            conversation_id,
+            exc.status_code,
+            exc.detail,
+        )
+        response_text = FALLBACK_RESPONSE
+
+    # 4. Enviar respuesta (reutiliza lógica PR #9)
+    try:
+        await send_outgoing_message(conversation_id, response_text, db)
+    except Exception:
+        logger.exception(
+            "send_outgoing falló conversation_id=%s",
+            conversation_id,
+        )
+        # No relanzar: webhook debe responder 200

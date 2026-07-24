@@ -3,14 +3,9 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from app.models.message import MessageContentType, MessageDirection
-
 
 class MessageCreate(BaseModel):
     content: str
-    direction: MessageDirection
-    content_type: MessageContentType = MessageContentType.TEXT
-    wa_message_id: str | None = None
 
     @field_validator("content")
     @classmethod

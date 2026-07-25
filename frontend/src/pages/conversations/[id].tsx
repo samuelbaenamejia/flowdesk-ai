@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
-import { getConversation, getConversationMessages, sendMessage } from "@/lib/api";
+import {
+  getConversation,
+  getConversationMessages,
+  sendMessage,
+  updateConversation,
+} from "@/lib/api";
 import { Conversation, Message } from "@/types";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -55,6 +60,8 @@ export default function ConversationDetailPage() {
   const [composerText, setComposerText] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+
+  const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
     if (!id || typeof id !== "string") return;
@@ -142,6 +149,24 @@ export default function ConversationDetailPage() {
     }
   }
 
+  async function handleToggleTakeover() {
+    if (!conversation || !id || typeof id !== "string") return;
+
+    setToggling(true);
+    try {
+      const newStatus =
+        conversation.status === "active" ? "human_takeover" : "active";
+      const updated = await updateConversation(id as string, newStatus);
+      setConversation(updated);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Error al cambiar estado"
+      );
+    } finally {
+      setToggling(false);
+    }
+  }
+
   if (loading) {
     return (
       <div>
@@ -212,6 +237,8 @@ export default function ConversationDetailPage() {
     );
   }
 
+  const isTakeover = conversation?.status === "human_takeover";
+
   return (
     <div className="flex h-[calc(100vh-8rem)] flex-col">
       <div className="mb-4">
@@ -233,11 +260,31 @@ export default function ConversationDetailPage() {
                 {formatDateTime(conversation.created_at)}
               </p>
             </div>
-            <span
-              className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${STATUS_STYLES[conversation.status] || "bg-gray-100 text-gray-800"}`}
-            >
-              {STATUS_LABELS[conversation.status] || conversation.status}
-            </span>
+
+            <div className="flex items-center gap-3">
+              <span
+                className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${STATUS_STYLES[conversation.status] || "bg-gray-100 text-gray-800"}`}
+              >
+                {STATUS_LABELS[conversation.status] || conversation.status}
+              </span>
+
+              <button
+                type="button"
+                onClick={handleToggleTakeover}
+                disabled={toggling}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                  isTakeover
+                    ? "bg-gray-900 text-white hover:bg-gray-800"
+                    : "border border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {toggling
+                  ? "Cambiando..."
+                  : isTakeover
+                    ? "Devolver al bot"
+                    : "Tomar control"}
+              </button>
+            </div>
           </div>
         )}
       </div>

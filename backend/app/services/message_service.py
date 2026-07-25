@@ -144,6 +144,28 @@ async def process_incoming_and_respond(
     Flujo completo: genera respuesta con Groq y envía vía WhatsApp.
     Invocado desde webhook tras persistir mensaje entrante.
     """
+    # 0. Verificar si la conversación está en takeover humano
+    result = await db.execute(
+        select(Conversation).where(Conversation.id == conversation_id)
+    )
+    conversation = result.scalar_one_or_none()
+
+    if conversation is None:
+        logger.warning(
+            "llm.respond: conversación no encontrada conversation_id=%s",
+            conversation_id,
+        )
+        return
+
+    if conversation.status != "active":
+        logger.info(
+            "llm.respond: conversación en takeover, sin respuesta automática "
+            "conversation_id=%s status=%s",
+            conversation_id,
+            conversation.status,
+        )
+        return
+
     # 1. Obtener historial
     history = await get_conversation_history(conversation_id, db)
 

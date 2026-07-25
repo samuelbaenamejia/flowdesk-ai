@@ -91,3 +91,24 @@ export async function sendMessage(
 
   return response.json();
 }
+
+export async function updateConversation(
+  id: string,
+  status: string
+): Promise<Conversation> {
+  const url = `${API_URL}/api/v1/conversations/${id}`;
+
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    const detail = body?.detail || `Error updating conversation: ${response.status}`;
+    throw new Error(detail);
+  }
+
+  return response.json();
+}

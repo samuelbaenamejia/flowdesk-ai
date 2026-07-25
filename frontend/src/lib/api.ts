@@ -70,3 +70,24 @@ export async function getConversationMessages(
 
   return response.json();
 }
+
+export async function sendMessage(
+  conversationId: string,
+  content: string
+): Promise<Message> {
+  const url = `${API_URL}/api/v1/conversations/${conversationId}/messages`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    const detail = body?.detail || `Error sending message: ${response.status}`;
+    throw new Error(detail);
+  }
+
+  return response.json();
+}

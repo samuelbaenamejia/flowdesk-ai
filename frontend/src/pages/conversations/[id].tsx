@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
-import { getConversation, getConversationMessages } from "@/lib/api";
+import { getConversation, getConversationMessages, sendMessage } from "@/lib/api";
 import { Conversation, Message } from "@/types";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -41,6 +41,7 @@ export default function ConversationDetailPage() {
   const router = useRouter();
   const { id } = router.query;
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -50,6 +51,10 @@ export default function ConversationDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
+
+  const [composerText, setComposerText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id || typeof id !== "string") return;
@@ -109,6 +114,32 @@ export default function ConversationDetailPage() {
 
   function handleLoadMore() {
     setOffset((prev) => prev + MESSAGE_LIMIT);
+  }
+
+  async function handleSend() {
+    const content = composerText.trim();
+    if (!content || !id || typeof id !== "string") return;
+
+    setSending(true);
+    setSendError(null);
+
+    try {
+      const newMessage = await sendMessage(id as string, content);
+      setMessages((prev) => [...prev, newMessage]);
+      setComposerText("");
+      textareaRef.current?.focus();
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : "Error al enviar mensaje");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   }
 
   if (loading) {
@@ -182,8 +213,8 @@ export default function ConversationDetailPage() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
+    <div className="flex h-[calc(100vh-8rem)] flex-col">
+      <div className="mb-4">
         <button
           type="button"
           onClick={handleBack}
@@ -211,9 +242,9 @@ export default function ConversationDetailPage() {
         )}
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white">
+      <div className="flex flex-1 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white">
         {loadingMessages ? (
-          <div className="p-6">
+          <div className="flex-1 p-6">
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div
@@ -224,11 +255,11 @@ export default function ConversationDetailPage() {
             </div>
           </div>
         ) : messages.length === 0 ? (
-          <div className="p-8 text-center">
+          <div className="flex flex-1 items-center justify-center">
             <p className="text-gray-500">No hay mensajes en esta conversación</p>
           </div>
         ) : (
-          <div className="max-h-[600px] overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6">
             {hasMore && (
               <div className="mb-4 text-center">
                 <button
@@ -276,6 +307,35 @@ export default function ConversationDetailPage() {
             </div>
           </div>
         )}
+
+        <div className="border-t border-gray-200 p-4">
+          {sendError && (
+            <div className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+              {sendError}
+            </div>
+          )}
+
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={textareaRef}
+              value={composerText}
+              onChange={(e) => setComposerText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Escribe un mensaje..."
+              disabled={sending}
+              rows={1}
+              className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={sending || !composerText.trim()}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {sending ? "Enviando..." : "Enviar"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -75,7 +75,7 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
   - `GET /api/v1/webhooks` (verify)
   - `POST /api/v1/webhooks` (receive)
 
-- **Modelos:** Contact, Conversation, Message
+- **Modelos:** Contact, Conversation, Message, User (model creado, endpoints pendientes)
 - **Clientes externos:** WhatsApp (whatsapp.py), Groq (groq.py)
 - **Servicios:** message_service.py (send_outgoing_message, get_conversation_history, process_incoming_and_respond con status check para human takeover)
 
@@ -96,7 +96,9 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 
 ## Próximo PR
 
-**n8n workflow** — Webhook → FastAPI → Groq → WhatsApp
+**Autenticación (PR 1 de 3):** User Model + Migration + Config
+
+Siguiente: Auth Backend (Service + Endpoints + Seed)
 
 ---
 

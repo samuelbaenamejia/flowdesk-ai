@@ -5,6 +5,8 @@ class Settings(BaseSettings):
     environment: str = "development"
     backend_port: int = 8000
     database_url: str
+    secret_key: str = "change-me-in-production"
+    access_token_expire_minutes: int = 1440  # 24 hours
     whatsapp_verify_token: str = ""
     whatsapp_phone_number_id: str = ""
     whatsapp_access_token: str = ""

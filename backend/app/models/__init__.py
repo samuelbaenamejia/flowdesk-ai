@@ -6,6 +6,7 @@ from app.models.message import (
     MessageDirection,
     MessageStatus,
 )
+from app.models.user import User
 
 __all__ = [
     "Contact",
@@ -14,4 +15,5 @@ __all__ = [
     "MessageContentType",
     "MessageDirection",
     "MessageStatus",
+    "User",
 ]

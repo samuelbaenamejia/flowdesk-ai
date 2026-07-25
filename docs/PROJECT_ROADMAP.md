@@ -1,158 +1,46 @@
 ﻿# PROJECT ROADMAP - FlowDesk-AI
 
-> Cada fase debe ser aprobada antes de continuar a la siguiente.
+> Cada PR cubre una funcionalidad vertical completa. No se merge sin aprobación.
 
 ---
 
-## FASE 0 — Preparación del Entorno (COMPLETADA ✔️)
+## Completado
 
-**Duración estimada**: 1 día real
-**Entregables**:
-- [x] Carpetas docs/, planning/, notes/
-- [x] PROJECT_VISION.md
-- [x] PROJECT_SCOPE.md
-- [x] PROJECT_ROADMAP.md
-- [x] PROJECT_DECISIONS.md
-- [x] ARCHITECTURE_REVIEW.md (recalibración post-review)
-- [x] MVP_DEFINITION.md (alcance preciso del MVP)
-- [ ] Git init + commit inicial
-- [ ] Entorno Python (.venv, pyproject.toml, requirements.txt)
-- [ ] Entorno Node (.nvmrc, package.json)
-- [ ] Editor config (.editorconfig, .prettierrc)
-- [ ] Pre-commit hooks (ruff + prettier)
-
----
-
-## FASE 1 — Análisis de Requisitos
-
-**Duración estimada**: 2 días
-**Objetivo**: Validar que el MVP_DEFINITION.md cubre todos los casos de uso antes de codificar.
-
-**Entregables**:
-- [ ] Casos de uso detallados para cada funcionalidad del MVP
-- [ ] Matriz de estados de conversación (active → human_takeover → closed)
-- [ ] Definición de system prompt para Groq
-- [ ] Estrategia de manejo de errores (LLM falla, WhatsApp falla, webhook falla)
-- [ ] Flujo alternativo: qué pasa si el contacto ya está en takeover
+| PR | Funcionalidad | Branch |
+|----|---------------|--------|
+| #1 | Database bootstrap + Alembic | `feature/database-bootstrap` |
+| #2 | Contact model + migration | `feature/contact-model` |
+| #3 | Contacts API (GET/PATCH) | `feature/contacts-api` |
+| #4 | Conversation model + migration | `feature/conversation-model` |
+| #5 | Conversations API (list, GET, PATCH) | `feature/conversations-api` |
+| #6 | Message model + migration | `feature/message-model` |
+| #7 | Messages API (list, create) | `feature/messages-api` |
+| #8 | WhatsApp Cloud API Webhook (verify + receive) | `feature/whatsapp-webhook` |
+| #9 | WhatsApp Send Message API (send_text_message) | `feature/whatsapp-send-message` |
+| #10 | Groq LLM Integration (auto-responses) | `feature/llm-groq-integration` |
+| #11 | Dashboard — Conversations List (enriched backend + frontend page) | `feature/dashboard-conversations-list` |
 
 ---
 
-## FASE 2 — Diseño de Base de Datos
+## Pendiente
 
-**Duración estimada**: 1 día
-**Objetivo**: Esquema SQL completo para Supabase.
-
-**Entregables**:
-- [ ] Tablas: contacts, conversations, messages, agents
-- [ ] Migraciones SQL (Alembic)
-- [ ] Políticas RLS en Supabase (si aplica)
-- [ ] Índices y constraints
-
----
-
-## FASE 3 — Diseño de la API
-
-**Duración estimada**: 1 día
-**Objetivo**: Contratos de API antes de codificar.
-
-**Entregables**:
-- [ ] Schemas Pydantic para cada endpoint
-- [ ] Validación de request/response
-- [ ] Códigos de error estandarizados
-- [ ] Documentación OpenAPI
+| PR | Funcionalidad | Descripción |
+|----|---------------|-------------|
+| #12 | Detalle de conversación | Página `/conversations/[id]` con historial de mensajes |
+| #13 | Envío de mensajes desde dashboard | Endpoint POST + UI para enviar mensajes |
+| #14 | Human takeover | Cambio de status + flag de intervención manual |
+| #15 | n8n workflow | Webhook → FastAPI → Groq → WhatsApp |
+| #16 | Autenticación | Login, JWT, protección de endpoints |
+| #17 | Testing | Unit tests, integration tests |
+| #18 | Documentación final | DEPLOY.md, CHANGELOG.md |
 
 ---
 
-## FASE 4 — Diseño del Flujo n8n
+## Criterios de merge
 
-**Duración estimada**: 1 día
-**Objetivo**: Workflow de n8n diagramado antes de implementar.
-
-**Entregables**:
-- [ ] Workflow: Webhook WhatsApp → FastAPI
-- [ ] Manejo de verify token
-- [ ] Transformación de payload
-- [ ] Manejo de errores y retry
-
----
-
-## FASE 5 — Diseño Frontend
-
-**Duración estimada**: 1 día
-**Objetivo**: Mockups del dashboard.
-
-**Entregables**:
-- [ ] Wireframes: Login, Dashboard, Lista Conversaciones, Detalle
-- [ ] Estados: loading, empty, error, edge
-- [ ] Flujo de takeover humano
-
----
-
-## FASE 6 — Implementación
-
-**Duración estimada**: 3-4 semanas
-**Objetivo**: Código del MVP.
-
-**Sprints**:
-- **Sprint 1** (semana 1): Infraestructura + DB + Auth
-  - Docker Compose (backend + n8n + caddy)
-  - Supabase setup (DB + Auth)
-  - Modelos SQLAlchemy + Alembic
-  - Health check endpoint
-- **Sprint 2** (semana 2): Backend Core
-  - Endpoints de conversaciones, mensajes, contactos
-  - Webhook receiver (n8n → FastAPI)
-  - Servicio Groq (LLM)
-  - Servicio WhatsApp (envío)
-- **Sprint 3** (semana 3): n8n Workflows + Frontend
-  - Workflow WhatsApp webhook → FastAPI
-  - Dashboard (listado + detalle conversaciones)
-  - Human takeover flow
-- **Sprint 4** (semana 4): Integración + Testing
-  - End-to-end: WhatsApp → n8n → FastAPI → Groq → WhatsApp
-  - Tests unitarios backend
-  - Tests de integración
-  - Debugging y polish
-
----
-
-## FASE 7 — Testing
-
-**Duración estimada**: 3 días
-**Entregables**:
-- [ ] Tests unitarios backend (>80% coverage)
-- [ ] Test de integración: webhook → LLM → respuesta
-- [ ] Prueba manual: enviar WhatsApp, recibir respuesta, ver en dashboard
-- [ ] Prueba de takeover humano
-
----
-
-## FASE 8 — Documentación
-
-**Duración estimada**: 2 días
-**Entregables**:
-- [ ] README.md (cómo configurar, ejecutar, desplegar)
-- [ ] DEPLOY.md (paso a paso para producción)
-- [ ] CHANGELOG.md
-- [ ] API docs (OpenAPI)
-
----
-
-## FASE 9 — Preparación Demo
-
-**Duración estimada**: 1 día
-**Entregables**:
-- [ ] Datos de prueba precargados
-- [ ] Script de demo (5 min, casos clave)
-- [ ] Entorno demo funcionando
-
----
-
-## FASE 10 — Refactor Final
-
-**Duración estimada**: 1 día
-**Entregables**:
-- [ ] Revisión de código completa
-- [ ] Linting/typing sin errores
-- [ ] Deuda técnica documentada
-- [ ] Propuesta de mejoras futuras
+1. PR review aprobada
+2. `uv run ruff check app/ --ignore B008` sin errores
+3. `npm run build` sin errores
+4. `npm run lint` sin errores
+5. Cada archivo nuevo debe ser usado en el mismo PR
+6. Una responsabilidad por PR

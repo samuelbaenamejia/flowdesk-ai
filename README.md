@@ -10,7 +10,7 @@ Automatiza respuestas a clientes usando IA, con supervisión humana cuando sea n
 |------|-----------|
 | Backend | FastAPI (Python 3.12) |
 | Frontend | Next.js 14 (Pages Router, React 18, TailwindCSS) |
-| Base de Datos | PostgreSQL via Supabase |
+| Base de Datos | PostgreSQL 17.6 via Supabase Cloud |
 | Orquestación | n8n |
 | IA | Groq API (Llama 3) |
 | Proxy | Caddy |
@@ -20,18 +20,26 @@ Automatiza respuestas a clientes usando IA, con supervisión humana cuando sea n
 
 ```
 FlowDesk-AI/
-├── backend/          # FastAPI
+├── backend/                  # FastAPI
 │   └── app/
 │       ├── main.py
-│       └── core/
-├── frontend/         # Next.js
+│       ├── api/v1/           # Endpoints (contacts, conversations, messages, webhooks)
+│       ├── clients/          # External APIs (WhatsApp, Groq)
+│       ├── core/             # Config, database
+│       ├── models/           # SQLAlchemy (Contact, Conversation, Message)
+│       ├── schemas/          # Pydantic request/response
+│       └── services/         # Business logic
+├── frontend/                 # Next.js
 │   └── src/
-│       ├── pages/
-│       └── styles/
-├── infra/            # Docker Compose, configs
-├── docs/             # Documentación del proyecto
-├── planning/         # Planificación de sprints
-└── notes/            # Notas de sesión
+│       ├── components/       # Layout, UI components
+│       ├── lib/              # API client
+│       ├── pages/            # Routes (Pages Router)
+│       ├── styles/           # Global CSS
+│       └── types/            # TypeScript interfaces
+├── infra/                    # Docker Compose, .env.example
+├── docs/                     # Project documentation
+├── planning/                 # Sprint planning
+└── notes/                    # Session notes
 ```
 
 ## Requisitos
@@ -52,10 +60,13 @@ docker compose -f infra/docker-compose.yml up --build
 
 | Fase | Estado |
 |------|--------|
-| 0. Preparación | Completada |
-| 1. Sprint 1 — Base del proyecto | En curso |
-| 2. Base de datos y API Core | Pendiente |
-| 3. n8n y WhatsApp | Pendiente |
-| 4. Dashboard y Frontend | Pendiente |
-| 5. Integración IA | Pendiente |
-| 6. Testing y Documentación | Pendiente |
+| Base del proyecto | Completada |
+| Base de datos y API Core (Contacts, Conversations, Messages) | Completada |
+| WhatsApp Cloud API (webhook + envío) | Completada |
+| Integración Groq (LLM auto-responses) | Completada |
+| Dashboard — Lista de conversaciones | Completada |
+| Detalle de conversación | Pendiente |
+| Human takeover | Pendiente |
+| n8n (orquestación) | Pendiente |
+| Autenticación | Pendiente |
+| Testing y documentación final | Pendiente |

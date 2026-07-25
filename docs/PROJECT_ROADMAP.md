@@ -22,6 +22,7 @@
 | #10 | Conversation Detail page | `feature/conversation-detail` | |
 | #11 | Conversation Composer | `feature/conversation-composer` | |
 | #12 | Human Takeover | `feature/human-takeover` | Status check + UI toggle |
+| #13 | Auth — User Model + Migration + Config | `feature/auth-user-model` | PR 1/3 de Autenticación |
 
 > **Nota:** Los PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo).
 
@@ -31,8 +32,9 @@
 
 | Funcionalidad | Descripción |
 |---------------|-------------|
+| Auth — Backend (2/3) | Service + Endpoints + Seed |
+| Auth — Frontend (3/3) | Login + Context + Protected Routes |
 | n8n workflow | Webhook → FastAPI → Groq → WhatsApp |
-| Autenticación | Login, JWT, protección de endpoints |
 | Testing | Unit tests, integration tests |
 | Documentación final | DEPLOY.md, CHANGELOG.md |
 

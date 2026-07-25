@@ -28,6 +28,7 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 | #10 | Conversation Detail page | `feature/conversation-detail` |
 | #11 | Conversation Composer | `feature/conversation-composer` |
 | #12 | Human Takeover | `feature/human-takeover` |
+| #13 | Auth — User Model + Migration + Config | `feature/auth-user-model` |
 
 > **Nota:** PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo).
 
@@ -96,9 +97,9 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 
 ## Próximo PR
 
-**Autenticación (PR 1 de 3):** User Model + Migration + Config
+**Auth Backend (2/3):** Service + Endpoints + Seed
 
-Siguiente: Auth Backend (Service + Endpoints + Seed)
+Siguiente: Auth Frontend (3/3)
 
 ---
 

@@ -91,17 +91,64 @@ async def list_conversations(
 @router.get("/conversations/{id}", response_model=ConversationResponse)
 async def get_conversation(
     id: uuid.UUID, db: AsyncSession = Depends(get_db)
-) -> Conversation:
-    result = await db.execute(select(Conversation).where(Conversation.id == id))
-    conversation = result.scalar_one_or_none()
+) -> dict:
+    subquery_last_msg = (
+        select(
+            Message.conversation_id,
+            Message.content.label("last_content"),
+            func.row_number()
+            .over(
+                partition_by=Message.conversation_id,
+                order_by=Message.created_at.desc(),
+            )
+            .label("rn"),
+        )
+        .subquery()
+    )
 
-    if conversation is None:
+    query = (
+        select(
+            Conversation.id,
+            Conversation.contact_id,
+            Contact.name.label("contact_name"),
+            Conversation.status,
+            func.substring(subquery_last_msg.c.last_content, 1, 100).label(
+                "last_message_preview"
+            ),
+            Conversation.last_message_at,
+            Conversation.created_at,
+            Conversation.updated_at,
+        )
+        .join(Contact, Conversation.contact_id == Contact.id)
+        .outerjoin(
+            subquery_last_msg,
+            and_(
+                subquery_last_msg.c.conversation_id == Conversation.id,
+                subquery_last_msg.c.rn == 1,
+            ),
+        )
+        .where(Conversation.id == id)
+    )
+
+    result = await db.execute(query)
+    row = result.one_or_none()
+
+    if row is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Conversation with id '{id}' not found",
         )
 
-    return conversation
+    return {
+        "id": row.id,
+        "contact_id": row.contact_id,
+        "contact_name": row.contact_name,
+        "status": row.status,
+        "last_message_preview": row.last_message_preview,
+        "last_message_at": row.last_message_at,
+        "created_at": row.created_at,
+        "updated_at": row.updated_at,
+    }
 
 
 @router.patch("/conversations/{id}", response_model=ConversationResponse)

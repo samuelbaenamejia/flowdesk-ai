@@ -14,3 +14,19 @@ export interface GetConversationsParams {
   limit?: number;
   offset?: number;
 }
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  direction: "incoming" | "outgoing";
+  content_type: string;
+  content: string;
+  wa_message_id: string | null;
+  status: "pending" | "sent" | "delivered" | "read" | "failed";
+  created_at: string;
+}
+
+export interface GetMessagesParams {
+  limit?: number;
+  offset?: number;
+}

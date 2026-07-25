@@ -69,7 +69,7 @@ docker compose -f infra/docker-compose.yml up --build
 | Conversation Composer (envío desde dashboard) | Completada |
 | Human takeover | Completada |
 | Autenticación — User Model (1/3) | Completada |
-| Autenticación — Auth Backend (2/3) | Pendiente |
+| Autenticación — Auth Backend (2/3) | En progreso |
 | Autenticación — Frontend Auth (3/3) | Pendiente |
 | n8n (orquestación) | Pendiente |
 | Testing y documentación final | Pendiente |

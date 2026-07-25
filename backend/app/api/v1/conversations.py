@@ -1,11 +1,13 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.models.contact import Contact
 from app.models.conversation import Conversation
+from app.models.message import Message
 from app.schemas.conversation import ConversationResponse, ConversationUpdate
 
 router = APIRouter()
@@ -19,8 +21,43 @@ async def list_conversations(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
-) -> list[Conversation]:
-    query = select(Conversation)
+) -> list[dict]:
+    subquery_last_msg = (
+        select(
+            Message.conversation_id,
+            Message.content.label("last_content"),
+            func.row_number()
+            .over(
+                partition_by=Message.conversation_id,
+                order_by=Message.created_at.desc(),
+            )
+            .label("rn"),
+        )
+        .subquery()
+    )
+
+    query = (
+        select(
+            Conversation.id,
+            Conversation.contact_id,
+            Contact.name.label("contact_name"),
+            Conversation.status,
+            func.substring(subquery_last_msg.c.last_content, 1, 100).label(
+                "last_message_preview"
+            ),
+            Conversation.last_message_at,
+            Conversation.created_at,
+            Conversation.updated_at,
+        )
+        .join(Contact, Conversation.contact_id == Contact.id)
+        .outerjoin(
+            subquery_last_msg,
+            and_(
+                subquery_last_msg.c.conversation_id == Conversation.id,
+                subquery_last_msg.c.rn == 1,
+            ),
+        )
+    )
 
     if status_filter is not None:
         if status_filter not in VALID_STATUSES:
@@ -30,11 +67,25 @@ async def list_conversations(
             )
         query = query.where(Conversation.status == status_filter)
 
-    query = query.order_by(Conversation.created_at.desc())
+    query = query.order_by(Conversation.last_message_at.desc().nullslast())
     query = query.offset(offset).limit(limit)
 
     result = await db.execute(query)
-    return list(result.scalars().all())
+    rows = result.all()
+
+    return [
+        {
+            "id": row.id,
+            "contact_id": row.contact_id,
+            "contact_name": row.contact_name,
+            "status": row.status,
+            "last_message_preview": row.last_message_preview,
+            "last_message_at": row.last_message_at,
+            "created_at": row.created_at,
+            "updated_at": row.updated_at,
+        }
+        for row in rows
+    ]
 
 
 @router.get("/conversations/{id}", response_model=ConversationResponse)

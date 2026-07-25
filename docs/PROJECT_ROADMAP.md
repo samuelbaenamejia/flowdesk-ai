@@ -4,7 +4,9 @@
 
 ---
 
-## Historial de PRs (mergeados a main)
+## Historial de PRs (merged a main)
+
+> **Convención:** Cada PR = una funcionalidad vertical. El número de PR es el asignado por GitHub.
 
 | PR | Funcionalidad | Branch | Notas |
 |----|---------------|--------|-------|
@@ -19,20 +21,20 @@
 | #9 | Groq LLM integration | `feature/llm-groq-integration` | |
 | #10 | Conversation Detail page | `feature/conversation-detail` | |
 | #11 | Conversation Composer | `feature/conversation-composer` | |
+| #12 | Human Takeover | `feature/human-takeover` | Status check + UI toggle |
 
-> **Nota:** El historial de git contiene merges duplicados (#5/#6 y #7/#8). Esto es un artifacto del proceso de desarrollo.
+> **Nota:** Los PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo).
 
 ---
 
 ## Pendiente
 
-| PR | Funcionalidad | Descripción |
-|----|---------------|-------------|
-| #14 | Human takeover | Cambio de status + flag de intervención manual |
-| #15 | n8n workflow | Webhook → FastAPI → Groq → WhatsApp |
-| #16 | Autenticación | Login, JWT, protección de endpoints |
-| #17 | Testing | Unit tests, integration tests |
-| #18 | Documentación final | DEPLOY.md, CHANGELOG.md |
+| Funcionalidad | Descripción |
+|---------------|-------------|
+| n8n workflow | Webhook → FastAPI → Groq → WhatsApp |
+| Autenticación | Login, JWT, protección de endpoints |
+| Testing | Unit tests, integration tests |
+| Documentación final | DEPLOY.md, CHANGELOG.md |
 
 ---
 

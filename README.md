@@ -67,7 +67,7 @@ docker compose -f infra/docker-compose.yml up --build
 | Dashboard — Lista de conversaciones | Completada |
 | Detalle de conversación | Completada |
 | Conversation Composer (envío desde dashboard) | Completada |
-| Human takeover | Pendiente |
+| Human takeover | Completada |
 | n8n (orquestación) | Pendiente |
 | Autenticación | Pendiente |
 | Testing y documentación final | Pendiente |

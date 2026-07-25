@@ -12,6 +12,8 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 
 ## PRs completados (merged a main)
 
+> **Convención:** Cada PR = una funcionalidad vertical. El número de PR es el asignado por GitHub.
+
 | PR | Funcionalidad | Branch |
 |----|---------------|--------|
 | #1 | Contact model + migration | `feature/contact-model` |
@@ -25,8 +27,9 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 | #9 | Groq LLM integration | `feature/llm-groq-integration` |
 | #10 | Conversation Detail page | `feature/conversation-detail` |
 | #11 | Conversation Composer | `feature/conversation-composer` |
+| #12 | Human Takeover | `feature/human-takeover` |
 
-> **Nota:** PRs #5/#6 y #7/#8 son re-merges del mismo trabajo.
+> **Nota:** PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo).
 
 ---
 
@@ -74,7 +77,7 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 
 - **Modelos:** Contact, Conversation, Message
 - **Clientes externos:** WhatsApp (whatsapp.py), Groq (groq.py)
-- **Servicios:** message_service.py (send_outgoing_message, get_conversation_history, process_incoming_and_respond)
+- **Servicios:** message_service.py (send_outgoing_message, get_conversation_history, process_incoming_and_respond con status check para human takeover)
 
 ### Frontend
 
@@ -93,10 +96,7 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 
 ## Próximo PR
 
-**PR #14: Human takeover**
-
-- Cambio de status de conversación
-- Flag de intervención manual
+**n8n workflow** — Webhook → FastAPI → Groq → WhatsApp
 
 ---
 

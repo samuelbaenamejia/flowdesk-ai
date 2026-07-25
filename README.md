@@ -65,7 +65,7 @@ docker compose -f infra/docker-compose.yml up --build
 | WhatsApp Cloud API (webhook + envío) | Completada |
 | Integración Groq (LLM auto-responses) | Completada |
 | Dashboard — Lista de conversaciones | Completada |
-| Detalle de conversación | Pendiente |
+| Detalle de conversación | Completada |
 | Human takeover | Pendiente |
 | n8n (orquestación) | Pendiente |
 | Autenticación | Pendiente |

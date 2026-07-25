@@ -1,24 +1,23 @@
 import logging
 import uuid
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
-from app.clients.whatsapp import WhatsAppSendError, send_text_message
-from app.models.contact import Contact
+from app.clients.whatsapp import WhatsAppSendError
 from app.models.conversation import Conversation
 from app.models.message import Message
 from app.schemas.message import MessageCreate, MessageResponse
+from app.services.message_service import send_outgoing_message
 
 _META_STATUS_MAP = {
     400: 400,
     401: 401,
     429: 503,
 }
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
@@ -81,98 +80,46 @@ async def create_message(
             detail=f"Conversation with id '{conversation_id}' not found",
         )
 
-    result = await db.execute(
-        select(Contact).where(Contact.id == conversation.contact_id)
-    )
-    contact = result.scalar_one_or_none()
-
-    if contact is None:
-        logger.error(
-            "whatsapp.send: contacto no encontrado conversation_id=%s contact_id=%s",
-            conversation_id,
-            conversation.contact_id,
-        )
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Contact for conversation '{conversation_id}' not found",
-        )
-
-    message = Message(
-        conversation_id=conversation_id,
-        direction="outgoing",
-        content_type="text",
-        content=payload.content,
-        status="pending",
-    )
-    db.add(message)
-
     try:
-        await db.commit()
-    except IntegrityError as exc:
-        await db.rollback()
+        message = await send_outgoing_message(conversation_id, payload.content, db)
+    except ValueError as exc:
+        if "not found" in str(exc).lower():
+            logger.warning(
+                "whatsapp.send: recurso no encontrado conversation_id=%s",
+                conversation_id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(exc),
+            )
         logger.warning(
-            "whatsapp.send: mensaje duplicado conversation_id=%s",
+            "whatsapp.send: error de integridad conversation_id=%s",
             conversation_id,
         )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Message creation failed due to integrity constraint",
-        ) from exc
-
-    await db.refresh(message)
-    logger.info(
-        "whatsapp.send: mensaje persistido conversation_id=%s message_id=%s",
-        conversation_id,
-        message.id,
-    )
-
-    try:
-        wa_message_id = await send_text_message(contact.wa_id, payload.content)
+            detail=str(exc),
+        )
     except WhatsAppSendError as exc:
         http_status = _META_STATUS_MAP.get(exc.status_code, 502)
         logger.error(
-            "whatsapp.send: error Meta conversation_id=%s message_id=%s "
-            "meta_status=%s http_status=%s detail=%s",
+            "whatsapp.send: error Meta conversation_id=%s meta_status=%s detail=%s",
             conversation_id,
-            message.id,
             exc.status_code,
-            http_status,
             exc.detail,
         )
         raise HTTPException(
             status_code=http_status,
             detail=f"WhatsApp API error: {exc.detail}",
-        ) from exc
-
-    logger.info(
-        "whatsapp.send: enviado a Meta conversation_id=%s wa_message_id=%s",
-        conversation_id,
-        wa_message_id,
-    )
-
-    message.status = "sent"
-    message.wa_message_id = wa_message_id
-    conversation.last_message_at = datetime.now(UTC)
-
-    try:
-        await db.commit()
-    except Exception as exc:
+        )
+    except Exception:
         logger.exception(
-            "whatsapp.send: commit fase 3 falló conversation_id=%s "
-            "wa_message_id=%s",
+            "whatsapp.send: error inesperado conversation_id=%s",
             conversation_id,
-            wa_message_id,
         )
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Message sent to WhatsApp but database update failed",
-        ) from exc
-
-    await db.refresh(message)
-    logger.info(
-        "whatsapp.send: completado conversation_id=%s wa_message_id=%s",
-        conversation_id,
-        wa_message_id,
-    )
+            status_code=500,
+            detail="Internal server error",
+        )
 
     return message

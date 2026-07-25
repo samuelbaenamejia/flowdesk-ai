@@ -12,19 +12,20 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 
 ## PRs completados (merged a main)
 
-| PR | Funcionalidad | Commit |
+| PR | Funcionalidad | Branch |
 |----|---------------|--------|
-| #1 | Database bootstrap + Alembic | `feat(database): bootstrap sqlalchemy and alembic` |
-| #2 | Contact model + migration | `feat(models): add Contact model` |
-| #3 | Contacts API (GET/PATCH) | `feat(api): add contacts endpoints` |
-| #4 | Conversation model + migration | `feat(models): add Conversation model` |
-| #5 | Conversations API (list, GET, PATCH) | `feat(api): add conversations endpoints` |
-| #6 | Message model + migration | `feat(models): add Message model` |
-| #7 | Messages API (list, create) | `feat(api): add messages endpoints` |
-| #8 | WhatsApp Cloud API Webhook | `feat(webhook): add WhatsApp Cloud API webhook` |
-| #9 | WhatsApp Send Message API | `feat(whatsapp): add send message endpoint` |
-| #10 | Groq LLM Integration | `feat(llm): add Groq integration for auto-responses` |
-| #11 | Dashboard — Conversations List | `feat(dashboard): add conversations list page` |
+| #1 | Contact model + migration | `feature/contact-model` |
+| #2 | Contacts API (GET/PATCH) | `feature/api-core` |
+| #3 | Conversation model + migration | `feature/conversation-model` |
+| #4 | Conversations API (list, GET, PATCH) | `feature/conversations-api` |
+| #5 | Message model + migration | `feature/message-model` |
+| #6 | Message model (re-merge) | `feature/message-model` |
+| #7 | WhatsApp send message | `feature/whatsapp-send-message` |
+| #8 | WhatsApp send message (re-merge) | `feature/whatsapp-send-message` |
+| #9 | Groq LLM integration | `feature/llm-groq-integration` |
+| #11 | Dashboard — Conversations List | `feature/dashboard-conversations-list` |
+
+> **Nota:** PRs #5/#6 y #7/#8 son re-merges del mismo trabajo. El historial de git contiene duplicados.
 
 ---
 

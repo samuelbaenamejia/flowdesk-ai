@@ -60,7 +60,7 @@ docker compose -f infra/docker-compose.yml up --build
 
 | Fase | Estado |
 |------|--------|
-| Base del proyecto | Completada |
+| Base del proyecto (FastAPI + Next.js + Docker) | Completada |
 | Base de datos y API Core (Contacts, Conversations, Messages) | Completada |
 | WhatsApp Cloud API (webhook + envío) | Completada |
 | Integración Groq (LLM auto-responses) | Completada |

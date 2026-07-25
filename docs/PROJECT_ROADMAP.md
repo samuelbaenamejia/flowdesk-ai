@@ -4,21 +4,22 @@
 
 ---
 
-## Completado
+## Historial de PRs (mergeados a main)
 
-| PR | Funcionalidad | Branch |
-|----|---------------|--------|
-| #1 | Database bootstrap + Alembic | `feature/database-bootstrap` |
-| #2 | Contact model + migration | `feature/contact-model` |
-| #3 | Contacts API (GET/PATCH) | `feature/contacts-api` |
-| #4 | Conversation model + migration | `feature/conversation-model` |
-| #5 | Conversations API (list, GET, PATCH) | `feature/conversations-api` |
-| #6 | Message model + migration | `feature/message-model` |
-| #7 | Messages API (list, create) | `feature/messages-api` |
-| #8 | WhatsApp Cloud API Webhook (verify + receive) | `feature/whatsapp-webhook` |
-| #9 | WhatsApp Send Message API (send_text_message) | `feature/whatsapp-send-message` |
-| #10 | Groq LLM Integration (auto-responses) | `feature/llm-groq-integration` |
-| #11 | Dashboard — Conversations List (enriched backend + frontend page) | `feature/dashboard-conversations-list` |
+| PR | Funcionalidad | Branch | Notas |
+|----|---------------|--------|-------|
+| #1 | Contact model + migration | `feature/contact-model` | |
+| #2 | Contacts API (GET/PATCH) | `feature/api-core` | |
+| #3 | Conversation model + migration | `feature/conversation-model` | |
+| #4 | Conversations API (list, GET, PATCH) | `feature/conversations-api` | |
+| #5 | Message model + migration | `feature/message-model` | |
+| #6 | Message model (re-merge) | `feature/message-model` | Duplicado de #5 |
+| #7 | WhatsApp send message | `feature/whatsapp-send-message` | |
+| #8 | WhatsApp send message (re-merge) | `feature/whatsapp-send-message` | Re-merge de #7 |
+| #9 | Groq LLM integration | `feature/llm-groq-integration` | |
+| #11 | Dashboard — Conversations List | `feature/dashboard-conversations-list` | Fast-forward |
+
+> **Nota:** El historial de git contiene merges duplicados (#5/#6 y #7/#8). Esto es un artifacto del proceso de desarrollo. El siguiente PR será #12.
 
 ---
 

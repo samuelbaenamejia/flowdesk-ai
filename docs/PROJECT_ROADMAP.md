@@ -18,7 +18,7 @@
 | #8 | WhatsApp send message (re-merge) | `feature/whatsapp-send-message` | Re-merge de #7 |
 | #9 | Groq LLM integration | `feature/llm-groq-integration` | |
 | #10 | Conversation Detail page | `feature/conversation-detail` | |
-| #11 | Dashboard — Conversations List | `feature/dashboard-conversations-list` | Fast-forward |
+| #11 | Conversation Composer | `feature/conversation-composer` | |
 
 > **Nota:** El historial de git contiene merges duplicados (#5/#6 y #7/#8). Esto es un artifacto del proceso de desarrollo.
 
@@ -28,7 +28,6 @@
 
 | PR | Funcionalidad | Descripción |
 |----|---------------|-------------|
-| #13 | Envío de mensajes desde dashboard | UI para enviar mensajes en `/conversations/[id]` |
 | #14 | Human takeover | Cambio de status + flag de intervención manual |
 | #15 | n8n workflow | Webhook → FastAPI → Groq → WhatsApp |
 | #16 | Autenticación | Login, JWT, protección de endpoints |

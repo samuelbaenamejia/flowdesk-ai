@@ -66,6 +66,7 @@ docker compose -f infra/docker-compose.yml up --build
 | Integración Groq (LLM auto-responses) | Completada |
 | Dashboard — Lista de conversaciones | Completada |
 | Detalle de conversación | Completada |
+| Conversation Composer (envío desde dashboard) | Completada |
 | Human takeover | Pendiente |
 | n8n (orquestación) | Pendiente |
 | Autenticación | Pendiente |

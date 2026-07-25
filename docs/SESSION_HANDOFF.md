@@ -24,7 +24,7 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 | #8 | WhatsApp send message (re-merge) | `feature/whatsapp-send-message` |
 | #9 | Groq LLM integration | `feature/llm-groq-integration` |
 | #10 | Conversation Detail page | `feature/conversation-detail` |
-| #11 | Dashboard — Conversations List | `feature/dashboard-conversations-list` |
+| #11 | Conversation Composer | `feature/conversation-composer` |
 
 > **Nota:** PRs #5/#6 y #7/#8 son re-merges del mismo trabajo.
 
@@ -81,7 +81,7 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 - **Layout:** Sidebar (Home, Conversaciones) + header
 - **Páginas:**
   - Conversations list (con filtro, paginación, loading/empty/error states)
-  - Conversation detail `/conversations/[id]` (header + historial de mensajes)
+  - Conversation detail `/conversations/[id]` (header + historial + composer de envío)
 
 ### Infraestructura
 
@@ -93,12 +93,10 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 
 ## Próximo PR
 
-**PR #13: Envío de mensajes desde el Dashboard (Conversation Composer)**
+**PR #14: Human takeover**
 
-- Input de texto en `/conversations/[id]`
-- Botón de envío
-- Reutilizar `POST /api/v1/conversations/{id}/messages`
-- Optimistic update del mensaje enviado
+- Cambio de status de conversación
+- Flag de intervención manual
 
 ---
 

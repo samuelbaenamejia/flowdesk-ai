@@ -152,9 +152,12 @@ uv run alembic revision --autogenerate -m "description"
 ## Reglas permanentes
 
 - Cada PR = una responsabilidad
-- REVIEW_PACKAGE antes de commit
-- No merge a main sin aprobación
+- Auto Code Review obligatorio antes de crear cualquier PR
+- No merge a main sin verificación completa
 - No crear archivos que no se usen en el mismo PR
 - Ruff sin errores (con `--ignore B008`)
 - npm run build sin errores
 - npm run lint sin errores
+- Documentación actualizada después de cada merge
+- Post-Merge Report obligatorio después de cada merge
+- Seguir `docs/AI_DEVELOPMENT_GUIDE.md` como flujo oficial de desarrollo

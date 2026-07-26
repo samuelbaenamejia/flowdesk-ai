@@ -21,6 +21,7 @@ class Settings(BaseSettings):
         "Responde de forma natural, útil y concisa. "
         "Si no sabes algo, di que un agente te atenderá."
     )
+    internal_api_key: str = ""
 
     class Config:
         env_file = ".env"

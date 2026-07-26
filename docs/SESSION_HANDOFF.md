@@ -66,6 +66,8 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 
 - **Endpoints:**
   - `GET /health`
+  - `POST /api/v1/auth/login` (login, retorna access_token)
+  - `GET /api/v1/auth/me` (usuario actual, requiere auth)
   - `GET /api/v1/contacts/{wa_id}`
   - `PATCH /api/v1/contacts/{wa_id}`
   - `GET /api/v1/conversations` (enriquecido: contact_name + last_message_preview)
@@ -76,9 +78,11 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
   - `GET /api/v1/webhooks` (verify)
   - `POST /api/v1/webhooks` (receive)
 
-- **Modelos:** Contact, Conversation, Message, User (model creado, endpoints pendientes)
+- **Modelos:** Contact, Conversation, Message, User
 - **Clientes externos:** WhatsApp (whatsapp.py), Groq (groq.py)
-- **Servicios:** message_service.py (send_outgoing_message, get_conversation_history, process_incoming_and_respond con status check para human takeover)
+- **Servicios:** message_service.py, auth_service.py (verify_password, hash_password, create_access_token, get_user_by_email, decode_access_token)
+- **Dependencias:** get_current_user (disponible, endpoints existentes aún sin proteger)
+- **Scripts:** create_admin.py (seed: admin@flowdesk.com / admin123)
 
 ### Frontend
 
@@ -97,9 +101,7 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 
 ## Próximo PR
 
-**Auth Backend (2/3):** Service + Endpoints + Seed
-
-Siguiente: Auth Frontend (3/3)
+**Auth Frontend (3/3):** Login + Context + Protected Routes
 
 ---
 

@@ -1,7 +1,10 @@
+import asyncio
 import json
 import logging
+import uuid
 from datetime import UTC, datetime
 
+import httpx
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import PlainTextResponse
 from pydantic import ValidationError
@@ -96,6 +99,29 @@ async def _process_webhook_entry(change: WebhookChange, db: AsyncSession) -> Non
             await _process_status(status, db)
 
 
+async def _notify_n8n(
+    conversation_id: uuid.UUID, contact_wa_id: str, message_text: str
+) -> None:
+    payload = {
+        "event": "message_received",
+        "conversation_id": str(conversation_id),
+        "contact_wa_id": contact_wa_id,
+        "message_preview": message_text,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
+            await client.post(settings.n8n_webhook_url, json=payload)
+        logger.info(
+            "webhook.n8n: notificado conversation_id=%s", conversation_id
+        )
+    except Exception:
+        logger.exception(
+            "webhook.n8n: error notificando conversation_id=%s",
+            conversation_id,
+        )
+
+
 async def _process_message(message, contacts, db: AsyncSession) -> None:
     if message.type != "text":
         logger.info("webhook.message: 不支持的类型type=%s忽略", message.type)
@@ -154,10 +180,28 @@ async def _process_message(message, contacts, db: AsyncSession) -> None:
         message.id,
     )
 
-    # Generar y enviar respuesta automática
+    # Notificar a n8n si está habilitado
+    if settings.n8n_enabled and settings.n8n_webhook_url:
+        asyncio.create_task(
+            _notify_n8n(conversation.id, contact.wa_id, message.text.body)
+        )
+
+    # Modo primary: saltar respuesta automática (n8n la orquesta)
+    if settings.n8n_enabled and settings.n8n_mode == "primary":
+        logger.info(
+            "webhook.message: modo primary, delegando a n8n "
+            "conversation_id=%s",
+            conversation.id,
+        )
+        return
+
+    # Respuesta automática (disabled o mirror)
     try:
         from app.services.message_service import process_incoming_and_respond
-        await process_incoming_and_respond(conversation.id, message.text.body, db)
+
+        await process_incoming_and_respond(
+            conversation.id, message.text.body, db
+        )
     except Exception:
         logger.exception(
             "webhook.message: error generando respuesta conversation_id=%s",

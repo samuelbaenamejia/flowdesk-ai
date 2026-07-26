@@ -19,7 +19,7 @@ router = APIRouter(prefix="/internal")
 @router.post("/conversations/{conversation_id}/trigger-ai")
 async def trigger_ai(
     conversation_id: uuid.UUID,
-    x_internal_key: str = Header(alias="X-Internal-Key"),
+    x_internal_key: str = Header(default="", alias="X-Internal-Key"),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     if x_internal_key != settings.internal_api_key:
@@ -27,6 +27,10 @@ async def trigger_ai(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid internal API key",
         )
+
+    logger.info(
+        "internal.trigger_ai: conversation_id=%s", conversation_id
+    )
 
     result = await db.execute(
         select(Conversation).where(Conversation.id == conversation_id)

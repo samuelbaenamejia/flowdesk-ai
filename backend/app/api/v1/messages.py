@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
+from app.api.deps import get_current_user, get_db
 from app.clients.whatsapp import WhatsAppSendError
 from app.models.conversation import Conversation
 from app.models.message import Message
@@ -31,6 +31,7 @@ async def list_messages(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
+    _: None = Depends(get_current_user),
 ) -> list[Message]:
     result = await db.execute(
         select(Conversation).where(Conversation.id == conversation_id)
@@ -64,6 +65,7 @@ async def create_message(
     conversation_id: uuid.UUID,
     payload: MessageCreate,
     db: AsyncSession = Depends(get_db),
+    _: None = Depends(get_current_user),
 ) -> Message:
     result = await db.execute(
         select(Conversation).where(Conversation.id == conversation_id)

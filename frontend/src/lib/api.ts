@@ -3,9 +3,51 @@ import {
   GetConversationsParams,
   Message,
   GetMessagesParams,
+  User,
 } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+function authHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export async function login(
+  email: string,
+  password: string
+): Promise<{ access_token: string }> {
+  const url = `${API_URL}/api/v1/auth/login`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    const detail = body?.detail || "Error al iniciar sesión";
+    throw new Error(detail);
+  }
+
+  return response.json();
+}
+
+export async function getMe(token: string): Promise<User> {
+  const url = `${API_URL}/api/v1/auth/me`;
+
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    throw new Error("Error al obtener usuario");
+  }
+
+  return response.json();
+}
 
 export async function getConversations(
   params?: GetConversationsParams
@@ -25,7 +67,7 @@ export async function getConversations(
   const queryString = searchParams.toString();
   const url = `${API_URL}/api/v1/conversations${queryString ? `?${queryString}` : ""}`;
 
-  const response = await fetch(url);
+  const response = await fetch(url, { headers: authHeaders() });
 
   if (!response.ok) {
     throw new Error(`Error fetching conversations: ${response.status}`);
@@ -37,7 +79,7 @@ export async function getConversations(
 export async function getConversation(id: string): Promise<Conversation> {
   const url = `${API_URL}/api/v1/conversations/${id}`;
 
-  const response = await fetch(url);
+  const response = await fetch(url, { headers: authHeaders() });
 
   if (!response.ok) {
     throw new Error(`Error fetching conversation: ${response.status}`);
@@ -62,7 +104,7 @@ export async function getConversationMessages(
   const queryString = searchParams.toString();
   const url = `${API_URL}/api/v1/conversations/${conversationId}/messages${queryString ? `?${queryString}` : ""}`;
 
-  const response = await fetch(url);
+  const response = await fetch(url, { headers: authHeaders() });
 
   if (!response.ok) {
     throw new Error(`Error fetching messages: ${response.status}`);
@@ -79,7 +121,7 @@ export async function sendMessage(
 
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ content }),
   });
 
@@ -100,7 +142,7 @@ export async function updateConversation(
 
   const response = await fetch(url, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ status }),
   });
 

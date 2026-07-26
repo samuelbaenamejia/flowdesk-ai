@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -8,11 +9,17 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
+  const { user, logout } = useAuth();
 
   const navItems = [
     { label: "Home", href: "/", icon: "🏠" },
     { label: "Conversaciones", href: "/conversations", icon: "💬" },
   ];
+
+  function handleLogout() {
+    logout();
+    router.push("/login");
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -43,9 +50,13 @@ export default function Layout({ children }: LayoutProps) {
       <main className="flex-1">
         <header className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500">Dashboard</span>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-500">Dashboard</span>
+              <span className="text-sm text-gray-400">{user?.email}</span>
+            </div>
             <button
               type="button"
+              onClick={handleLogout}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
               Logout

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
+from app.api.deps import get_current_user, get_db
 from app.models.contact import Contact
 from app.schemas.contact import ContactResponse, ContactUpdate
 
@@ -10,7 +10,11 @@ router = APIRouter()
 
 
 @router.get("/contacts/{wa_id}", response_model=ContactResponse)
-async def get_contact(wa_id: str, db: AsyncSession = Depends(get_db)) -> Contact:
+async def get_contact(
+    wa_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(get_current_user),
+) -> Contact:
     result = await db.execute(select(Contact).where(Contact.wa_id == wa_id))
     contact = result.scalar_one_or_none()
 
@@ -28,6 +32,7 @@ async def update_contact(
     wa_id: str,
     payload: ContactUpdate,
     db: AsyncSession = Depends(get_db),
+    _: None = Depends(get_current_user),
 ) -> Contact:
     result = await db.execute(select(Contact).where(Contact.wa_id == wa_id))
     contact = result.scalar_one_or_none()

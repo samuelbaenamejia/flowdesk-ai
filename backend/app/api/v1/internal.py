@@ -69,3 +69,43 @@ async def trigger_ai(
     await process_incoming_and_respond(conversation_id, last_message.content, db)
 
     return {"status": "ok"}
+
+
+@router.post("/conversations/{conversation_id}/request-human-approval")
+async def request_human_approval(
+    conversation_id: uuid.UUID,
+    x_internal_key: str = Header(default="", alias="X-Internal-Key"),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    if x_internal_key != settings.internal_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid internal API key",
+        )
+
+    result = await db.execute(
+        select(Conversation).where(Conversation.id == conversation_id)
+    )
+    conversation = result.scalar_one_or_none()
+
+    if conversation is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        )
+
+    if conversation.status == "closed":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Conversation is closed",
+        )
+
+    if conversation.status != "human_takeover":
+        conversation.status = "human_takeover"
+        await db.commit()
+        logger.info(
+            "internal.request_human_approval: escalada conversation_id=%s",
+            conversation_id,
+        )
+
+    return {"status": "ok", "conversation_status": "human_takeover"}

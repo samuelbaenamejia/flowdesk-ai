@@ -15,11 +15,43 @@
       }
     },
     {
+      "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5e",
+      "name": "Check Keywords",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "parameters": {
+        "language": "javaScript",
+        "code": "const keywords = $env.ESCALATION_KEYWORDS || '';\nconst message = $json.message_preview || '';\nconst list = keywords.split(',').map(k => k.trim().toLowerCase()).filter(k => k);\nconst found = list.some(k => message.toLowerCase().includes(k));\nreturn [{ escalated: found }];\n"
+      }
+    },
+    {
+      "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6f",
+      "name": "Escalate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.escalated }}",
+              "value2": true,
+              "operator": "equal"
+            }
+          ],
+          "combinator": "and",
+          "number": [],
+          "string": []
+        }
+      }
+    },
+    {
       "id": "c2b3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
-      "name": "HTTP Request",
+      "name": "HTTP Request (trigger-ai)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [450, 300],
+      "position": [850, 100],
       "parameters": {
         "method": "POST",
         "url": "http://backend:8000/api/v1/internal/conversations/{{ $json.conversation_id }}/trigger-ai",
@@ -47,7 +79,7 @@
       "name": "Success?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [650, 300],
+      "position": [1050, 100],
       "parameters": {
         "conditions": {
           "string": [
@@ -64,11 +96,38 @@
       }
     },
     {
+      "id": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7g",
+      "name": "HTTP Request (human-approval)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 500],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/api/v1/internal/conversations/{{ $json.conversation_id }}/request-human-approval",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "={{ $env.INTERNAL_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": false,
+        "options": {
+          "retryOnFail": true,
+          "maxRetries": 2,
+          "continueOnFail": false
+        }
+      }
+    },
+    {
       "id": "e4d5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
       "name": "Respond OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [850, 200],
+      "position": [1250, 100],
       "parameters": {
         "respondWith": "json",
         "responseBody": "{\n  \"status\": \"ok\",\n  \"message\": \"Respuesta generada correctamente\"\n}",
@@ -79,13 +138,13 @@
     },
     {
       "id": "f5e6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b",
-      "name": "Respond Error",
+      "name": "Respond Escalated",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [850, 400],
+      "position": [1050, 600],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "{\n  \"status\": \"error\",\n  \"message\": \"Error al procesar el mensaje\"\n}",
+        "responseBody": "{\n  \"status\": \"ok\",\n  \"message\": \"Conversación escalada a un agente humano\"\n}",
         "options": {
           "responseCode": 200
         }
@@ -97,14 +156,43 @@
       "main": [
         [
           {
-            "node": "HTTP Request",
+            "node": "Check Keywords",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "HTTP Request": {
+    "Check Keywords": {
+      "main": [
+        [
+          {
+            "node": "Escalate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate?": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request (human-approval)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request (trigger-ai)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request (trigger-ai)": {
       "main": [
         [
           {
@@ -126,7 +214,18 @@
         ],
         [
           {
-            "node": "Respond Error",
+            "node": "HTTP Request (human-approval)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request (human-approval)": {
+      "main": [
+        [
+          {
+            "node": "Respond Escalated",
             "type": "main",
             "index": 0
           }
@@ -141,5 +240,5 @@
   },
   "staticData": null,
   "tags": [],
-  "versionId": "1"
+  "versionId": "2"
 }

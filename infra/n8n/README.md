@@ -111,12 +111,15 @@ FastAPI (webhook)
   │
   └─ POST /webhook/ai-responder ──► n8n AI Responder
                                        │
-                                       ├─ POST /internal/conversations/{id}/trigger-ai
-                                       │     └─ X-Internal-Key
-                                       │
-                                       └─ ¿status == "ok"?
-                                            ├─ sí → 200 OK
-                                            └─ no  → error (con retry 3)
+                                       ├─ Check Keywords ($env.ESCALATION_KEYWORDS)
+                                       │     │
+                                       │     ├─ ¿coinciden? → POST /internal/.../request-human-approval → Escalated
+                                       │     │
+                                       │     └─ no → POST /internal/conversations/{id}/trigger-ai
+                                       │                │
+                                       │                ├─ ¿status == "ok"? → 200 OK
+                                       │                │
+                                       │                └─ error → POST /internal/.../request-human-approval → Escalated
 ```
 
 **Modos de operación:**
@@ -140,6 +143,66 @@ Para activar `mirror`:
 N8N_ENABLED=true
 N8N_MODE=mirror
 ```
+
+### Human Approval
+
+El AI Responder incluye escalamiento automático a un agente humano cuando se cumplen las reglas definidas.
+
+**Reglas de escalamiento (orden de prioridad):**
+
+| Prioridad | Regla | Dónde se evalúa | Comportamiento |
+|-----------|-------|-----------------|----------------|
+| 1 | Usuario solicita explícitamente un humano | Workflow (Check Keywords node + `ESCALATION_KEYWORDS`) | Escala sin ejecutar Groq |
+| 2 | `trigger-ai` devuelve error HTTP | Workflow (Success? IF node) | Escala después del fallo |
+| 3 | Timeout del modelo | Workflow (HTTP Request timeout) | Escala después del timeout |
+| 4 | Retries agotados | Workflow (HTTP Request maxRetries) | Escala después de N reintentos |
+
+**Variable de entorno:**
+
+| Variable | Descripción | Default |
+|----------|-------------|---------|
+| `ESCALATION_KEYWORDS` | Lista separada por comas de palabras que activan escalamiento | `humano,asesor,agente` |
+
+Las keywords se comparan contra `message_preview` (recibido en el webhook). Si el mensaje contiene alguna keyword, el workflow escala inmediatamente sin ejecutar `trigger-ai`.
+
+**Flujo:**
+
+```
+Webhook
+  │
+  ▼
+Check Keywords (lee $env.ESCALATION_KEYWORDS)
+  │
+  ▼
+¿Keywords coinciden?
+  │
+  ├─ SÍ → request-human-approval → Respond Escalated
+  │
+  └─ NO → trigger-ai
+            │
+            ├─ OK → Respond OK
+            │
+            └─ Error → request-human-approval → Respond Escalated
+```
+
+**Endpoint `request-human-approval`:**
+
+```
+POST /api/v1/internal/conversations/{id}/request-human-approval
+Header: X-Internal-Key
+```
+
+| Estado actual | HTTP | Respuesta |
+|---------------|------|-----------|
+| active → human_takeover | 200 | `{"status":"ok","conversation_status":"human_takeover"}` |
+| human_takeover (ya escalada) | 200 | `{"status":"ok","conversation_status":"human_takeover"}` (idempotente) |
+| closed | 409 | `{"detail":"Conversation is closed"}` |
+| No existe | 404 | `{"detail":"Conversation not found"}` |
+
+**Importación:**
+1. El workflow `ai-responder.json` ya incluye los nodos de Human Approval.
+2. Configura `ESCALATION_KEYWORDS` en el entorno del contenedor n8n.
+3. Activa el workflow normalmente.
 
 ## Red Docker
 

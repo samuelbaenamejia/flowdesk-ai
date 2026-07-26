@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     n8n_enabled: bool = False
     n8n_mode: Literal["disabled", "mirror", "primary"] = "disabled"
     n8n_webhook_url: str | None = None
+    internal_api_key: str = ""
 
     class Config:
         env_file = ".env"

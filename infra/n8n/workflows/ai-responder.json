@@ -1,0 +1,145 @@
+{
+  "name": "AI Responder",
+  "nodes": [
+    {
+      "id": "b1a2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-responder",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "c2b3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [450, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/api/v1/internal/conversations/{{ $json.conversation_id }}/trigger-ai",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "={{ $env.INTERNAL_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": false,
+        "options": {
+          "retryOnFail": true,
+          "maxRetries": 3,
+          "waitBetweenRetries": 2000,
+          "continueOnFail": true
+        }
+      }
+    },
+    {
+      "id": "d3c4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
+      "name": "Success?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.status }}",
+              "value2": "ok",
+              "operator": "equal"
+            }
+          ],
+          "combinator": "and",
+          "number": [],
+          "boolean": []
+        }
+      }
+    },
+    {
+      "id": "e4d5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 200],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"ok\",\n  \"message\": \"Respuesta generada correctamente\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "f5e6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 400],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"error\",\n  \"message\": \"Error al procesar el mensaje\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success?": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicyThreshold": 2
+  },
+  "staticData": null,
+  "tags": [],
+  "versionId": "1"
+}

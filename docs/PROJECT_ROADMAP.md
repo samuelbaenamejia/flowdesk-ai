@@ -25,6 +25,10 @@
 | #13 | Auth — User Model + Migration + Config | `feature/auth-user-model` | PR 1/3 de Autenticación |
 | #14 | Auth — Backend: Service + Endpoints + Seed | `feature/auth-backend` | PR 2/3 de Autenticación |
 | #15 | Auth — Frontend: Login + Context + Protected Routes | `feature/auth-frontend` | PR 3/3 de Autenticación — JWT localStorage, ruteo protegido |
+| #16 | Webhook → n8n trigger (PR C) | `feature/webhook-n8n-trigger` | _notify_n8n() con asyncio.create_task() |
+| #17 | n8n AI Responder workflow (PR D) | `feature/n8n-ai-responder` | Workflow JSON + README |
+| #18 | n8n infrastructure (PR A) | `feature/n8n-infrastructure` | docker-compose + .env.example + infra/n8n/ |
+| #19 | Internal API endpoint (PR B) | `feature/internal-api` | POST /internal/conversations/{id}/trigger-ai + X-Internal-Key |
 
 > **Nota:** Los PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo).
 
@@ -32,11 +36,21 @@
 
 ## Pendiente
 
-| Funcionalidad | Descripción |
-|---------------|-------------|
-| n8n workflow | Webhook → FastAPI → Groq → WhatsApp |
-| Testing | Unit tests, integration tests |
-| Documentación final | DEPLOY.md, CHANGELOG.md |
+| Funcionalidad | Descripción | Depende de |
+|---------------|-------------|------------|
+| n8n — Human Approval workflow (PR E) | Workflow con aprobación humana vía n8n | PR B (✅) |
+| Testing | Unit tests, integration tests | — |
+| Documentación final | DEPLOY.md, CHANGELOG.md | — |
+
+### Roadmap n8n
+
+| PR | Estado | Branch |
+|----|--------|--------|
+| PR A — Infraestructura | ✅ Merged (#18) | `feature/n8n-infrastructure` |
+| PR B — Internal API | ✅ Merged (#19) | `feature/internal-api` |
+| PR C — Webhook → n8n trigger | ✅ Merged (#16) | `feature/webhook-n8n-trigger` |
+| PR D — AI Responder workflow | ✅ Merged (#17) | `feature/n8n-ai-responder` |
+| PR E — Human Approval workflow | 🔄 Pendiente | — |
 
 ---
 

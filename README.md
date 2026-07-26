@@ -72,5 +72,9 @@ docker compose -f infra/docker-compose.yml up --build
 | Autenticación — User Model (1/3) | Completada |
 | Autenticación — Auth Backend (2/3) | Completada |
 | Autenticación — Frontend Auth (3/3) | Completada |
-| n8n (orquestación) | Pendiente |
+| n8n infraestructura (PR A) | Completada |
+| n8n — Internal API (PR B) | Completada |
+| n8n — Webhook trigger (PR C) | Completada |
+| n8n — AI Responder workflow (PR D) | Completada |
+| n8n — Human Approval workflow (PR E) | Pendiente |
 | Testing y documentación final | Pendiente |

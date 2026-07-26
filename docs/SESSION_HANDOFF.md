@@ -31,6 +31,10 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 | #13 | Auth — User Model + Migration + Config | `feature/auth-user-model` |
 | #14 | Auth — Backend: Service + Endpoints + Seed | `feature/auth-backend` |
 | #15 | Auth — Frontend: Login + Context + Protected Routes | `feature/auth-frontend` |
+| #16 | Webhook → n8n trigger (PR C) | `feature/webhook-n8n-trigger` |
+| #17 | n8n AI Responder workflow (PR D) | `feature/n8n-ai-responder` |
+| #18 | n8n infrastructure (PR A) | `feature/n8n-infrastructure` |
+| #19 | Internal API endpoint (PR B) | `feature/internal-api` |
 
 > **Nota:** PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo).
 
@@ -77,9 +81,10 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
   - `PATCH /api/v1/conversations/{id}`
   - `GET /api/v1/conversations/{id}/messages` (pagination)
   - `POST /api/v1/conversations/{id}/messages` (create + send via WhatsApp)
-  - `GET /api/v1/webhooks` (verify)
-  - `POST /api/v1/webhooks` (receive)
-
+   - `GET /api/v1/webhooks` (verify)
+   - `POST /api/v1/webhooks` (receive)
+   - `POST /api/v1/internal/conversations/{id}/trigger-ai` (n8n Internal API, auth X-Internal-Key)
+ 
 - **Modelos:** Contact, Conversation, Message, User
 - **Clientes externos:** WhatsApp (whatsapp.py), Groq (groq.py)
 - **Servicios:** message_service.py, auth_service.py (verify_password, hash_password, create_access_token, get_user_by_email, decode_access_token)
@@ -97,15 +102,28 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 
 ### Infraestructura
 
-- Docker Compose (backend + frontend)
+- Docker Compose (backend + frontend + n8n)
 - Supabase Cloud (PostgreSQL 17.6)
+- n8n (orquestación) — servicio en docker-compose, Internal API disponible
 - Caddy (pendiente para dominios)
 
 ---
 
 ## Próximo PR
 
-**n8n workflow:** Orquestación — Webhook de Meta → FastAPI → Groq → WhatsApp. Automatización con n8n para manejo de flujos complejos.
+**PR E — Human Approval workflow:** Workflow de n8n para escalar conversaciones a un humano cuando la IA no puede resolverlas.
+
+### Roadmap n8n
+
+| PR | Estado |
+|----|--------|
+| PR A — Infraestructura | ✅ Merged (#18) |
+| PR B — Internal API | ✅ Merged (#19) |
+| PR C — Webhook → n8n trigger | ✅ Merged (#16) |
+| PR D — AI Responder workflow | ✅ Merged (#17) |
+| PR E — Human Approval workflow | 🔄 Siguiente |
+
+> PR D ahora es funcional: PR A + PR B están en main.
 
 ---
 

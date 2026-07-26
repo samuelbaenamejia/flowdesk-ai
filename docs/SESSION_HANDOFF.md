@@ -35,6 +35,7 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 | #17 | n8n AI Responder workflow (PR D) | `feature/n8n-ai-responder` |
 | #18 | n8n infrastructure (PR A) | `feature/n8n-infrastructure` |
 | #19 | Internal API endpoint (PR B) | `feature/internal-api` |
+| #20 | n8n Human Approval workflow (PR E) | `feature/n8n-human-approval` |
 
 > **Nota:** PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo).
 
@@ -84,6 +85,7 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
    - `GET /api/v1/webhooks` (verify)
    - `POST /api/v1/webhooks` (receive)
    - `POST /api/v1/internal/conversations/{id}/trigger-ai` (n8n Internal API, auth X-Internal-Key)
+   - `POST /api/v1/internal/conversations/{id}/request-human-approval` (escalamiento a humano, idempotente)
  
 - **Modelos:** Contact, Conversation, Message, User
 - **Clientes externos:** WhatsApp (whatsapp.py), Groq (groq.py)
@@ -104,16 +106,12 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 
 - Docker Compose (backend + frontend + n8n)
 - Supabase Cloud (PostgreSQL 17.6)
-- n8n (orquestación) — servicio en docker-compose, Internal API disponible
+- n8n (orquestación) — servicio en docker-compose, Internal API disponible, escalamiento automático con ESCALATION_KEYWORDS
 - Caddy (pendiente para dominios)
 
 ---
 
-## Próximo PR
-
-**PR E — Human Approval workflow:** Workflow de n8n para escalar conversaciones a un humano cuando la IA no puede resolverlas.
-
-### Roadmap n8n
+## Roadmap n8n (completado)
 
 | PR | Estado |
 |----|--------|
@@ -121,9 +119,13 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 | PR B — Internal API | ✅ Merged (#19) |
 | PR C — Webhook → n8n trigger | ✅ Merged (#16) |
 | PR D — AI Responder workflow | ✅ Merged (#17) |
-| PR E — Human Approval workflow | 🔄 Siguiente |
+| PR E — Human Approval workflow | ✅ Merged (#20) |
 
-> PR D ahora es funcional: PR A + PR B están en main.
+El roadmap de integración con n8n está completo. Los 5 PRs del plan original están en main.
+
+## Próximo PR
+
+**Testing:** Implementar tests unitarios e integrales para backend y frontend.
 
 ---
 

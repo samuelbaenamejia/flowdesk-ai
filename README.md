@@ -76,5 +76,5 @@ docker compose -f infra/docker-compose.yml up --build
 | n8n — Internal API (PR B) | Completada |
 | n8n — Webhook trigger (PR C) | Completada |
 | n8n — AI Responder workflow (PR D) | Completada |
-| n8n — Human Approval workflow (PR E) | Pendiente |
+| n8n — Human Approval workflow (PR E) | Completada |
 | Testing y documentación final | Pendiente |

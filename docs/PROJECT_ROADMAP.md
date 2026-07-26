@@ -29,6 +29,7 @@
 | #17 | n8n AI Responder workflow (PR D) | `feature/n8n-ai-responder` | Workflow JSON + README |
 | #18 | n8n infrastructure (PR A) | `feature/n8n-infrastructure` | docker-compose + .env.example + infra/n8n/ |
 | #19 | Internal API endpoint (PR B) | `feature/internal-api` | POST /internal/conversations/{id}/trigger-ai + X-Internal-Key |
+| #20 | n8n Human Approval workflow (PR E) | `feature/n8n-human-approval` | request-human-approval + escalamiento automático en AI Responder |
 
 > **Nota:** Los PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo).
 
@@ -38,11 +39,10 @@
 
 | Funcionalidad | Descripción | Depende de |
 |---------------|-------------|------------|
-| n8n — Human Approval workflow (PR E) | Workflow con aprobación humana vía n8n | PR B (✅) |
 | Testing | Unit tests, integration tests | — |
 | Documentación final | DEPLOY.md, CHANGELOG.md | — |
 
-### Roadmap n8n
+### Roadmap n8n (completado)
 
 | PR | Estado | Branch |
 |----|--------|--------|
@@ -50,7 +50,9 @@
 | PR B — Internal API | ✅ Merged (#19) | `feature/internal-api` |
 | PR C — Webhook → n8n trigger | ✅ Merged (#16) | `feature/webhook-n8n-trigger` |
 | PR D — AI Responder workflow | ✅ Merged (#17) | `feature/n8n-ai-responder` |
-| PR E — Human Approval workflow | 🔄 Pendiente | — |
+| PR E — Human Approval workflow | ✅ Merged (#20) | `feature/n8n-human-approval` |
+
+El roadmap de integración de n8n está completo. Los 5 PRs (A–E) están en main.
 
 ---
 

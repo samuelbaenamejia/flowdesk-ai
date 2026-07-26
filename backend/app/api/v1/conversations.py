@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
+from app.api.deps import get_current_user, get_db
 from app.models.contact import Contact
 from app.models.conversation import Conversation
 from app.models.message import Message
@@ -21,6 +21,7 @@ async def list_conversations(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
+    _: None = Depends(get_current_user),
 ) -> list[dict]:
     subquery_last_msg = (
         select(
@@ -90,7 +91,9 @@ async def list_conversations(
 
 @router.get("/conversations/{id}", response_model=ConversationResponse)
 async def get_conversation(
-    id: uuid.UUID, db: AsyncSession = Depends(get_db)
+    id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(get_current_user),
 ) -> dict:
     subquery_last_msg = (
         select(
@@ -156,6 +159,7 @@ async def update_conversation(
     id: uuid.UUID,
     payload: ConversationUpdate,
     db: AsyncSession = Depends(get_db),
+    _: None = Depends(get_current_user),
 ) -> Conversation:
     if payload.status not in VALID_STATUSES:
         raise HTTPException(

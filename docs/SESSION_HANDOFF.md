@@ -1,6 +1,6 @@
 # SESSION_HANDOFF — FlowDesk-AI
 
-> Última actualización: 2026-07-25
+> Última actualización: 2026-07-26
 
 ---
 
@@ -30,6 +30,7 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 | #12 | Human Takeover | `feature/human-takeover` |
 | #13 | Auth — User Model + Migration + Config | `feature/auth-user-model` |
 | #14 | Auth — Backend: Service + Endpoints + Seed | `feature/auth-backend` |
+| #15 | Auth — Frontend: Login + Context + Protected Routes | `feature/auth-frontend` |
 
 > **Nota:** PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo).
 
@@ -82,15 +83,17 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 - **Modelos:** Contact, Conversation, Message, User
 - **Clientes externos:** WhatsApp (whatsapp.py), Groq (groq.py)
 - **Servicios:** message_service.py, auth_service.py (verify_password, hash_password, create_access_token, get_user_by_email, decode_access_token)
-- **Dependencias:** get_current_user (disponible, endpoints existentes aún sin proteger)
+- **Dependencias:** get_current_user (aplicada en contacts, conversations, messages)
 - **Scripts:** create_admin.py (seed: admin@flowdesk.com / admin123)
 
 ### Frontend
 
-- **Layout:** Sidebar (Home, Conversaciones) + header
+- **Layout:** Sidebar (Home, Conversaciones) + header (user email + Logout funcional)
 - **Páginas:**
+  - Login (formulario + manejo de errores, JWT en localStorage)
   - Conversations list (con filtro, paginación, loading/empty/error states)
   - Conversation detail `/conversations/[id]` (header + historial + composer de envío)
+- **AuthContext:** Token + user state, login/logout, restauración de sesión, AuthGuard para rutas protegidas
 
 ### Infraestructura
 
@@ -102,7 +105,7 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 
 ## Próximo PR
 
-**Auth Frontend (3/3):** Login + Context + Protected Routes
+**n8n workflow:** Orquestación — Webhook de Meta → FastAPI → Groq → WhatsApp. Automatización con n8n para manejo de flujos complejos.
 
 ---
 

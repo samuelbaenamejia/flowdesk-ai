@@ -23,17 +23,18 @@ FlowDesk-AI/
 ├── backend/                  # FastAPI
 │   └── app/
 │       ├── main.py
-│       ├── api/v1/           # Endpoints (contacts, conversations, messages, webhooks)
+│       ├── api/v1/           # Endpoints (auth, contacts, conversations, messages, webhooks)
 │       ├── clients/          # External APIs (WhatsApp, Groq)
 │       ├── core/             # Config, database
-│       ├── models/           # SQLAlchemy (Contact, Conversation, Message)
+│       ├── models/           # SQLAlchemy (User, Contact, Conversation, Message)
 │       ├── schemas/          # Pydantic request/response
-│       └── services/         # Business logic
+│       └── services/         # Business logic (auth, messages)
 ├── frontend/                 # Next.js
 │   └── src/
 │       ├── components/       # Layout, UI components
-│       ├── lib/              # API client
-│       ├── pages/            # Routes (Pages Router)
+│       ├── contexts/         # AuthContext (login, token, session)
+│       ├── lib/              # API client (login, getMe, authHeaders)
+│       ├── pages/            # Routes (Pages Router) — login, conversations
 │       ├── styles/           # Global CSS
 │       └── types/            # TypeScript interfaces
 ├── infra/                    # Docker Compose, .env.example
@@ -70,6 +71,6 @@ docker compose -f infra/docker-compose.yml up --build
 | Human takeover | Completada |
 | Autenticación — User Model (1/3) | Completada |
 | Autenticación — Auth Backend (2/3) | Completada |
-| Autenticación — Frontend Auth (3/3) | Pendiente |
+| Autenticación — Frontend Auth (3/3) | Completada |
 | n8n (orquestación) | Pendiente |
 | Testing y documentación final | Pendiente |

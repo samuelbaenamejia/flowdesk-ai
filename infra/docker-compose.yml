@@ -16,3 +16,26 @@ services:
       - backend
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
+
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - DB_TYPE=${N8N_DB_TYPE:-sqlite}
+      - DB_POSTGRESDB_HOST=${N8N_DB_HOST:-}
+      - DB_POSTGRESDB_PORT=${N8N_DB_PORT:-5432}
+      - DB_POSTGRESDB_DATABASE=${N8N_DB_DATABASE:-}
+      - DB_POSTGRESDB_USER=${N8N_DB_USER:-}
+      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD:-}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/workflows
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+volumes:
+  n8n_data:

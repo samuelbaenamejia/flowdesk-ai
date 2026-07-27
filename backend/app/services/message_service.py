@@ -2,7 +2,7 @@ import logging
 import uuid
 
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.groq import GroqError, generate_response
@@ -82,7 +82,10 @@ async def send_outgoing_message(
         )
         raise ValueError("Message creation failed due to integrity constraint") from exc
 
-    await db.refresh(message)
+    try:
+        await db.refresh(message)
+    except InvalidRequestError:
+        pass
     logger.info(
         "whatsapp.send: mensaje persistido conversation_id=%s message_id=%s",
         conversation_id,
@@ -125,7 +128,10 @@ async def send_outgoing_message(
         )
         raise
 
-    await db.refresh(message)
+    try:
+        await db.refresh(message)
+    except InvalidRequestError:
+        pass
     logger.info(
         "whatsapp.send: completado conversation_id=%s wa_message_id=%s",
         conversation_id,

@@ -301,6 +301,42 @@ class TestReceiveMessage:
         assert response.status_code == 200
         mock_generate.assert_not_called()
 
+    async def test_receive_closed_creates_new_conversation(
+        self,
+        client: AsyncClient,
+        settings_phone,
+        test_contact,
+        test_conversation,
+        db_session,
+        mock_groq,
+        mock_whatsapp,
+    ):
+        test_conversation.status = "closed"
+        await db_session.commit()
+
+        response = await client.post(
+            "/api/v1/webhooks/whatsapp",
+            json=_text_payload(wa_msg_id="closed_msg"),
+        )
+        assert response.status_code == 200
+
+        from app.models.conversation import Conversation
+        from sqlalchemy import select
+
+        result = await db_session.execute(
+            select(Conversation).where(
+                Conversation.contact_id == test_contact.id
+            )
+        )
+        conversations = result.scalars().all()
+        assert len(conversations) == 2
+
+        closed_conv = next(c for c in conversations if c.id == test_conversation.id)
+        assert closed_conv.status == "closed"
+
+        new_conv = next(c for c in conversations if c.id != test_conversation.id)
+        assert new_conv.status == "active"
+
     async def test_receive_groq_failure_uses_fallback(
         self,
         client: AsyncClient,

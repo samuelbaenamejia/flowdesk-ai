@@ -348,7 +348,19 @@ npm run lint
 npm run build
 ```
 
-### 10.2 Si alguna falla
+### 10.2 Regla de veracidad en reportes
+
+Nunca reportar verificaciones como exitosas si no fueron ejecutadas explícitamente.
+
+Diferenciar claramente entre:
+
+- **✅ Verificado:** el comando se ejecutó y pasó.
+- **❌ Falló:** el comando se ejecutó y no pasó.
+- **— No aplica:** el componente no fue modificado y no se ejecutó verificación sobre él.
+
+No afirmar que un componente funciona si no se verificó. Un "import OK" requiere haber ejecutado `uv run python -c "import app"`. Un "Docker OK" requiere `docker compose config`.
+
+### 10.3 Si alguna falla
 
 1. Detener el flujo inmediatamente.
 2. Mostrar el error completo.
@@ -394,23 +406,21 @@ npm run build
 - Commit docs: <sha>
 
 ## Health Check
-| Componente | Estado |
-|------------|--------|
-| Docker Compose | ✅ / ❌ |
-| FastAPI | ✅ / ❌ |
-| Next.js | ✅ / ❌ |
-| Auth | ✅ / ❌ |
-| WhatsApp | ✅ / ❌ |
-| Groq | ✅ / ❌ |
-| n8n | ✅ / ❌ |
-| Build | ✅ / ❌ |
-| Lint | ✅ / ❌ |
-| Ruff | ✅ / ❌ |
-| Working Tree | ✅ / ❌ |
+
+Solo incluir componentes que fueron verificados explícitamente. El resto: "— No aplica".
+
+| Componente | Estado | Última verificación |
+|------------|--------|---------------------|
+| Ruff | ✅ / ❌ / — | `uv run ruff check app/ --ignore B008` |
+| Lint | ✅ / ❌ / — | `npm run lint` |
+| Build | ✅ / ❌ / — | `npm run build` |
+| Working Tree | ✅ / ❌ / — | `git status --short` |
 
 ## Roadmap Global
 
-████████████████░░░░ XX% (barras de progreso)
+████████████████░░░░ XX% (barras de progreso del roadmap definido)
+
+Indicar claramente qué roadmap se está midiendo. Si es un sub-roadmap (ej: n8n), aclarar "100% del roadmap n8n definido (PRs A–E)" en vez de "100% del proyecto".
 
 | Fase | Estado |
 |------|--------|

@@ -181,4 +181,18 @@ async def update_conversation(
     await db.commit()
     await db.refresh(conversation)
 
-    return conversation
+    contact_result = await db.execute(
+        select(Contact).where(Contact.id == conversation.contact_id)
+    )
+    contact = contact_result.scalar_one_or_none()
+
+    return {
+        "id": conversation.id,
+        "contact_id": conversation.contact_id,
+        "contact_name": contact.name if contact else "",
+        "status": conversation.status,
+        "last_message_preview": None,
+        "last_message_at": conversation.last_message_at,
+        "created_at": conversation.created_at,
+        "updated_at": conversation.updated_at,
+    }

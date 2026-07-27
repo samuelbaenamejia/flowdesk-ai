@@ -169,3 +169,15 @@ def mock_whatsapp(monkeypatch):
         "app.services.message_service.send_text_message",
         mock_send_text_message,
     )
+
+
+@pytest.fixture
+def mock_n8n_notify(monkeypatch):
+    called = {"count": 0, "args": None}
+
+    async def mock_notify(conversation_id, contact_wa_id, message_text):
+        called["count"] += 1
+        called["args"] = (conversation_id, contact_wa_id, message_text)
+
+    monkeypatch.setattr("app.api.v1.webhooks._notify_n8n", mock_notify)
+    return called

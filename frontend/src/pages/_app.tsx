@@ -1,9 +1,15 @@
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
 import { useEffect, type ReactNode } from "react";
-import Layout from "@/components/Layout";
+import { Inter } from "next/font/google";
+import AppShell from "@/components/layout/AppShell";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import "../styles/globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 function AuthGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -36,16 +42,18 @@ export default function App({ Component, pageProps }: AppProps) {
   const isLoginPage = router.pathname === "/login";
 
   return (
-    <AuthProvider>
-      <AuthGuard>
-        {isLoginPage ? (
-          <Component {...pageProps} />
-        ) : (
-          <Layout>
+    <div className={`${inter.variable} font-sans`}>
+      <AuthProvider>
+        <AuthGuard>
+          {isLoginPage ? (
             <Component {...pageProps} />
-          </Layout>
-        )}
-      </AuthGuard>
-    </AuthProvider>
+          ) : (
+            <AppShell>
+              <Component {...pageProps} />
+            </AppShell>
+          )}
+        </AuthGuard>
+      </AuthProvider>
+    </div>
   );
 }

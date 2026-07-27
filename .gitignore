@@ -32,3 +32,8 @@ docker-compose.override.yml
 # Project
 *.log
 *.pid
+
+# Coverage
+coverage/
+html/
+.coverage

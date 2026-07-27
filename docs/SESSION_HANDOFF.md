@@ -1,6 +1,6 @@
 # SESSION_HANDOFF — FlowDesk-AI
 
-> Última actualización: 2026-07-26
+> Última actualización: 2026-07-27
 
 ---
 
@@ -36,6 +36,7 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 | #18 | n8n infrastructure (PR A) | `feature/n8n-infrastructure` |
 | #19 | Internal API endpoint (PR B) | `feature/internal-api` |
 | #20 | n8n Human Approval workflow (PR E) | `feature/n8n-human-approval` |
+| #21 | Frontend Foundation (F1) | `feature/f1-frontend-foundation` |
 
 > **Nota:** PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo).
 
@@ -95,12 +96,16 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 
 ### Frontend
 
-- **Layout:** Sidebar (Home, Conversaciones) + header (user email + Logout funcional)
+- **Design System:** 7 UI components (Button + forwardRef, Input + useId, Badge, Table + getRowKey, Skeleton, EmptyState, ErrorState). Variantes: 4 Button (primary/secondary/destructive/ghost), 5 Badge (default/success/warning/info/error), 4 Skeleton (text/title/avatar/row).
+- **Layout:** AppShell (Sidebar w-16 icon-only + Header con user email + Logout + Main Content). Sidebar usa `useRouter()` para active state. Header usa `useAuth()` para datos de sesión.
+- **Testing:** Vitest + @testing-library/react + jsdom + coverage. 58 tests, 96.42% branch coverage. Thresholds configurados en 90%.
 - **Páginas:**
-  - Login (formulario + manejo de errores, JWT en localStorage)
-  - Conversations list (con filtro, paginación, loading/empty/error states)
-  - Conversation detail `/conversations/[id]` (header + historial + composer de envío)
+  - Login (refactorizado con Button + Input, role="alert" en errores, aria-labels)
+  - Conversations list (sin cambios — se refactoriza en F2)
+  - Conversation detail (sin cambios — se refactoriza en F3)
 - **AuthContext:** Token + user state, login/logout, restauración de sesión, AuthGuard para rutas protegidas
+- **Inter font:** Cargada vía `next/font/google` con CSS variable.
+- **Tailwind:** `fontFamily.sans` configurado con Inter.
 
 ### Infraestructura
 
@@ -125,7 +130,7 @@ El roadmap de integración con n8n está completo. Los 5 PRs del plan original e
 
 ## Próximo PR
 
-**Testing:** Implementar tests unitarios e integrales para backend y frontend.
+**F2 — Dashboard:** Refactorizar la lista de conversaciones usando el design system de F1. Agregar `useConversations` hook, filtros, paginación, estados loading/empty/error con los componentes UI de F1.
 
 ---
 

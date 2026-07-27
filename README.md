@@ -77,4 +77,6 @@ docker compose -f infra/docker-compose.yml up --build
 | n8n — Webhook trigger (PR C) | Completada |
 | n8n — AI Responder workflow (PR D) | Completada |
 | n8n — Human Approval workflow (PR E) | Completada |
+| Frontend Foundation — Design System + Layout + Testing (#21) | Completada |
+| F2 — Dashboard (lista de conversaciones) | Pendiente |
 | Testing y documentación final | Pendiente |

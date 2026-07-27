@@ -30,8 +30,9 @@
 | #18 | n8n infrastructure (PR A) | `feature/n8n-infrastructure` | docker-compose + .env.example + infra/n8n/ |
 | #19 | Internal API endpoint (PR B) | `feature/internal-api` | POST /internal/conversations/{id}/trigger-ai + X-Internal-Key |
 | #20 | n8n Human Approval workflow (PR E) | `feature/n8n-human-approval` | request-human-approval + escalamiento automático en AI Responder |
+| #21 | Frontend Foundation (F1) | `feature/f1-frontend-foundation` | Design system, layout (AppShell/Sidebar/Header), testing infra (Vitest + RTL), UI components (Button/Input/Badge/Table/Skeleton/EmptyState/ErrorState), 58 tests, 96.42% branch coverage |
 
-> **Nota:** Los PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo).
+> **Nota:** Los PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo). F1 es excepción de tamaño por ser fundacional (34 archivos).
 
 ---
 
@@ -39,7 +40,10 @@
 
 | Funcionalidad | Descripción | Depende de |
 |---------------|-------------|------------|
-| Testing | Unit tests, integration tests | — |
+| F2 — Dashboard | Lista de conversaciones con filtros, paginación, datos reales | F1 |
+| F3 — Conversation Detail | Workspace de conversación con chat bubbles y composer | F2 |
+| F4 — Polish | Responsive, dark mode, accesibilidad final | F3 |
+| Testing avanzado | Integration tests backend/frontend | — |
 | Documentación final | DEPLOY.md, CHANGELOG.md | — |
 
 ### Roadmap n8n (completado)

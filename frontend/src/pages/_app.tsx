@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import { Inter } from "next/font/google";
 import AppShell from "@/components/layout/AppShell";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import "../styles/globals.css";
 
 const inter = Inter({
@@ -42,18 +43,28 @@ export default function App({ Component, pageProps }: AppProps) {
   const isLoginPage = router.pathname === "/login";
 
   return (
-    <div className={`${inter.variable} font-sans`}>
-      <AuthProvider>
-        <AuthGuard>
-          {isLoginPage ? (
-            <Component {...pageProps} />
-          ) : (
-            <AppShell>
+    <ThemeProvider>
+      <div className={`${inter.variable} font-sans`}>
+        <AuthProvider>
+          <AuthGuard>
+            {isLoginPage ? (
               <Component {...pageProps} />
-            </AppShell>
-          )}
-        </AuthGuard>
-      </AuthProvider>
-    </div>
+            ) : (
+              <AppShell
+                title={
+                  router.pathname === "/conversations"
+                    ? "Conversaciones"
+                    : router.pathname === "/conversations/[id]"
+                      ? "Conversación"
+                      : "Dashboard"
+                }
+              >
+                <Component {...pageProps} />
+              </AppShell>
+            )}
+          </AuthGuard>
+        </AuthProvider>
+      </div>
+    </ThemeProvider>
   );
 }

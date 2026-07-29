@@ -1,11 +1,11 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 
 const variants = {
-  primary: "bg-gray-900 text-white hover:bg-gray-800 active:bg-gray-700",
+  primary: "bg-gray-900 text-white hover:bg-gray-800 active:bg-gray-700 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-200 dark:active:bg-gray-300",
   secondary:
-    "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100",
-  destructive: "bg-red-600 text-white hover:bg-red-700 active:bg-red-800",
-  ghost: "text-gray-600 hover:bg-gray-100 active:bg-gray-200",
+    "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700",
+  destructive: "bg-red-600 text-white hover:bg-red-700 active:bg-red-800 dark:bg-red-700 dark:text-white",
+  ghost: "text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700",
 };
 
 const sizes = {

@@ -1,5 +1,6 @@
 import logging
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -30,6 +31,7 @@ async def list_messages(
     conversation_id: uuid.UUID,
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
+    after: datetime | None = Query(None, description="Return only messages created after this timestamp"),
     db: AsyncSession = Depends(get_db),
     _: None = Depends(get_current_user),
 ) -> list[Message]:
@@ -44,13 +46,12 @@ async def list_messages(
             detail=f"Conversation with id '{conversation_id}' not found",
         )
 
-    query = (
-        select(Message)
-        .where(Message.conversation_id == conversation_id)
-        .order_by(Message.created_at.asc())
-        .offset(offset)
-        .limit(limit)
-    )
+    query = select(Message).where(Message.conversation_id == conversation_id)
+
+    if after is not None:
+        query = query.where(Message.created_at > after)
+
+    query = query.order_by(Message.created_at.asc()).offset(offset).limit(limit)
 
     result = await db.execute(query)
     return list(result.scalars().all())

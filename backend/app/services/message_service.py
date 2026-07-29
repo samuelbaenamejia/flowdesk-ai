@@ -177,7 +177,7 @@ async def process_incoming_and_respond(
 
     # 2. Construir mensajes para Groq
     messages = [
-        {"role": "system", "content": settings.groq_system_prompt},
+        {"role": "system", "content": settings.groq_system_prompt.replace("{EMPRESA}", settings.company_name)},
         *history,
         {"role": "user", "content": user_message},
     ]

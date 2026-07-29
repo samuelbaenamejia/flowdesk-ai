@@ -31,10 +31,12 @@ FlowDesk-AI/
 │       └── services/         # Business logic (auth, messages)
 ├── frontend/                 # Next.js
 │   └── src/
-│       ├── components/       # Layout, UI components
+│       ├── __tests__/        # Test suite (153 tests, 21 files)
+│       ├── components/       # Design system (ui/), layout, dashboard, workspace (MessageList, MessageBubble, ConversationHeader, Composer)
 │       ├── contexts/         # AuthContext (login, token, session)
-│       ├── lib/              # API client (login, getMe, authHeaders)
-│       ├── pages/            # Routes (Pages Router) — login, conversations
+│       ├── hooks/            # useConversations, useConversation, useMessages
+│       ├── lib/              # API client, formatTime, formatRelativeTime
+│       ├── pages/            # Routes (Pages Router) — login, conversations (list + detail)
 │       ├── styles/           # Global CSS
 │       └── types/            # TypeScript interfaces
 ├── infra/                    # Docker Compose, .env.example
@@ -78,5 +80,8 @@ docker compose -f infra/docker-compose.yml up --build
 | n8n — AI Responder workflow (PR D) | Completada |
 | n8n — Human Approval workflow (PR E) | Completada |
 | Frontend Foundation — Design System + Layout + Testing (#21) | Completada |
-| F2 — Dashboard (lista de conversaciones) | Pendiente |
-| Testing y documentación final | Pendiente |
+| F2 — Dashboard (lista de conversaciones) | Completada |
+| F3 — Conversation Workspace (chat bubbles, composer, takeover) | Completada |
+| F4 — Responsive (F4A) + Dark Mode (F4B) + Realtime Smart Polling (F4C) | Completada |
+| Testing avanzado | Pendiente |
+| Documentación final | Pendiente |

@@ -28,11 +28,13 @@
 | #16 | Webhook → n8n trigger (PR C) | `feature/webhook-n8n-trigger` | _notify_n8n() con asyncio.create_task() |
 | #17 | n8n AI Responder workflow (PR D) | `feature/n8n-ai-responder` | Workflow JSON + README |
 | #18 | n8n infrastructure (PR A) | `feature/n8n-infrastructure` | docker-compose + .env.example + infra/n8n/ |
-| #19 | Internal API endpoint (PR B) | `feature/internal-api` | POST /internal/conversations/{id}/trigger-ai + X-Internal-Key |
+| #19 | Internal API endpoint (PR B) | `feature/internal-api` | POST /api/v1/internal/conversations/{id}/trigger-ai + X-Internal-Key |
 | #20 | n8n Human Approval workflow (PR E) | `feature/n8n-human-approval` | request-human-approval + escalamiento automático en AI Responder |
 | #21 | Frontend Foundation (F1) | `feature/f1-frontend-foundation` | Design system, layout (AppShell/Sidebar/Header), testing infra (Vitest + RTL), UI components (Button/Input/Badge/Table/Skeleton/EmptyState/ErrorState), 58 tests, 96.42% branch coverage |
+| — | F2 — Dashboard (refactor) | `feature/f2-dashboard` (fast-forward merge local) | Refactor completo: useConversations hook, filtros, paginación, ConversationTable, 102 tests, 100% statements, 94.73% branches |
+| — | F3 — Conversation Workspace | `feature/f3-conversation-workspace` (fast-forward merge local) | Workspace de conversación: ConversationHeader, MessageBubble, MessageList, Composer, useConversation, useMessages, 153 tests, lint clean, 3 High/3 Medium/7 Low issues resueltos |
 
-> **Nota:** Los PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo). F1 es excepción de tamaño por ser fundacional (34 archivos).
+> **Nota:** Los PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo). F1 es excepción de tamaño por ser fundacional (34 archivos). F2 y F3 se mergearon localmente sin PR numerado.
 
 ---
 
@@ -40,9 +42,9 @@
 
 | Funcionalidad | Descripción | Depende de |
 |---------------|-------------|------------|
-| F2 — Dashboard | Lista de conversaciones con filtros, paginación, datos reales | F1 |
-| F3 — Conversation Detail | Workspace de conversación con chat bubbles y composer | F2 |
-| F4 — Polish | Responsive, dark mode, accesibilidad final | F3 |
+| F4A — Responsive | ✅ Completado | F3 |
+| F4B — Dark Mode | 🚧 En progreso | F4A |
+| F4C — Realtime | ✅ Completado | F4B |
 | Testing avanzado | Integration tests backend/frontend | — |
 | Documentación final | DEPLOY.md, CHANGELOG.md | — |
 

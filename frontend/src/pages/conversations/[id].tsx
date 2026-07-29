@@ -1,184 +1,58 @@
-import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
-import {
-  getConversation,
-  getConversationMessages,
-  sendMessage,
-  updateConversation,
-} from "@/lib/api";
-import { Conversation, Message } from "@/types";
-
-const STATUS_STYLES: Record<string, string> = {
-  active: "bg-green-100 text-green-800",
-  human_takeover: "bg-yellow-100 text-yellow-800",
-  closed: "bg-gray-100 text-gray-800",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  active: "Activa",
-  human_takeover: "Takeover",
-  closed: "Cerrada",
-};
-
-const MESSAGE_LIMIT = 50;
-
-function formatDateTime(dateString: string | null): string {
-  if (!dateString) return "-";
-  const date = new Date(dateString);
-  return date.toLocaleDateString("es-ES", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function formatTime(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString("es-ES", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+import { useConversation, useMessages } from "@/hooks";
+import { ConversationHeader } from "@/components/workspace/ConversationHeader";
+import { MessageList } from "@/components/workspace/MessageList";
+import { Composer } from "@/components/workspace/Composer";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { MessageSquare } from "lucide-react";
 
 export default function ConversationDetailPage() {
   const router = useRouter();
   const { id } = router.query;
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const conversationId = typeof id === "string" ? id : undefined;
 
-  const [conversation, setConversation] = useState<Conversation | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMessages, setLoadingMessages] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [offset, setOffset] = useState(0);
+  const {
+    conversation,
+    loading: conversationLoading,
+    error: conversationError,
+    notFound,
+    toggleStatus,
+    toggling,
+    toggleError,
+  } = useConversation(conversationId);
 
-  const [composerText, setComposerText] = useState("");
-  const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState<string | null>(null);
-
-  const [toggling, setToggling] = useState(false);
-
-  useEffect(() => {
-    if (!id || typeof id !== "string") return;
-
-    async function fetchConversation() {
-      setLoading(true);
-      setError(null);
-      setNotFound(false);
-      try {
-        const data = await getConversation(id as string);
-        setConversation(data);
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("404")) {
-          setNotFound(true);
-        } else {
-          setError(err instanceof Error ? err.message : "Error desconocido");
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchConversation();
-  }, [id]);
-
-  useEffect(() => {
-    if (!id || typeof id !== "string") return;
-
-    async function fetchMessages() {
-      setLoadingMessages(true);
-      try {
-        const data = await getConversationMessages(id as string, {
-          limit: MESSAGE_LIMIT,
-          offset,
-        });
-        setMessages(data);
-        setHasMore(data.length === MESSAGE_LIMIT);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al cargar mensajes");
-      } finally {
-        setLoadingMessages(false);
-      }
-    }
-
-    fetchMessages();
-  }, [id, offset]);
-
-  useEffect(() => {
-    if (!loadingMessages && messages.length > 0) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [loadingMessages, messages]);
+  const {
+    messages,
+    loading: messagesLoading,
+    error: messagesError,
+    hasMore,
+    loadMore,
+    sendMessage,
+    sending,
+    sendError,
+  } = useMessages(conversationId);
 
   function handleBack() {
     router.push("/conversations");
   }
 
-  function handleLoadMore() {
-    setOffset((prev) => prev + MESSAGE_LIMIT);
-  }
-
-  async function handleSend() {
-    const content = composerText.trim();
-    if (!content || !id || typeof id !== "string") return;
-
-    setSending(true);
-    setSendError(null);
-
-    try {
-      const newMessage = await sendMessage(id as string, content);
-      setMessages((prev) => [...prev, newMessage]);
-      setComposerText("");
-      textareaRef.current?.focus();
-    } catch (err) {
-      setSendError(err instanceof Error ? err.message : "Error al enviar mensaje");
-    } finally {
-      setSending(false);
-    }
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  }
-
-  async function handleToggleTakeover() {
-    if (!conversation || !id || typeof id !== "string") return;
-
-    setToggling(true);
-    try {
-      const newStatus =
-        conversation.status === "active" ? "human_takeover" : "active";
-      const updated = await updateConversation(id as string, newStatus);
-      setConversation(updated);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Error al cambiar estado"
-      );
-    } finally {
-      setToggling(false);
-    }
-  }
-
-  if (loading) {
+  if (conversationLoading) {
     return (
-      <div>
-        <div className="mb-6">
-          <div className="h-8 w-48 animate-pulse rounded bg-gray-200" />
+      <div className="flex h-[calc(100dvh-8rem)] flex-col rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+        <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+          <div className="flex items-center gap-4">
+            <Skeleton variant="text" width="80px" />
+            <div>
+              <Skeleton variant="title" />
+              <Skeleton variant="text" width="120px" />
+            </div>
+          </div>
         </div>
-        <div className="space-y-3">
+        <div className="flex-1 space-y-3 p-6">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-16 animate-pulse rounded-lg bg-gray-200"
-            />
+            <Skeleton key={i} variant="row" />
           ))}
         </div>
       </div>
@@ -187,203 +61,65 @@ export default function ConversationDetailPage() {
 
   if (notFound) {
     return (
-      <div>
-        <div className="mb-6">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="text-sm font-medium text-gray-600 hover:text-gray-900"
-          >
-            ← Volver
-          </button>
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
-          <p className="text-gray-500">Conversación no encontrada</p>
-          <button
-            type="button"
-            onClick={handleBack}
-            className="mt-4 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-          >
-            Volver a conversaciones
-          </button>
-        </div>
+      <div className="flex h-[calc(100dvh-8rem)] flex-col items-center justify-center rounded-lg border border-gray-200 bg-white p-8 dark:border-gray-700 dark:bg-gray-800">
+        <EmptyState
+          icon={MessageSquare}
+          title="Conversación no encontrada"
+          description="La conversación que buscas no existe o fue eliminada."
+          action={{ label: "Volver a conversaciones", onClick: handleBack }}
+        />
       </div>
     );
   }
 
-  if (error) {
+  if (conversationError || messagesError) {
     return (
-      <div>
-        <div className="mb-6">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="text-sm font-medium text-gray-600 hover:text-gray-900"
-          >
-            ← Volver
-          </button>
-        </div>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-center">
-          <p className="text-sm text-red-800">{error}</p>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="mt-2 text-sm font-medium text-red-600 hover:text-red-800"
-          >
-            Reintentar
-          </button>
-        </div>
+      <div className="flex h-[calc(100dvh-8rem)] flex-col items-center justify-center rounded-lg border border-gray-200 bg-white p-8 dark:border-gray-700 dark:bg-gray-800">
+        <ErrorState
+          title="Error al cargar la conversación"
+          message={conversationError || messagesError || "Error desconocido"}
+          onRetry={() => window.location.reload()}
+        />
       </div>
     );
   }
 
-  const isTakeover = conversation?.status === "human_takeover";
+  if (!conversation) {
+    return null;
+  }
+
+  const showComposer = conversation.status === "human_takeover";
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col">
-      <div className="mb-4">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="mb-4 text-sm font-medium text-gray-600 hover:text-gray-900"
-        >
-          ← Volver
-        </button>
-
-        {conversation && (
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                {conversation.contact_name}
-              </h2>
-              <p className="text-sm text-gray-500">
-                {formatDateTime(conversation.created_at)}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span
-                className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${STATUS_STYLES[conversation.status] || "bg-gray-100 text-gray-800"}`}
-              >
-                {STATUS_LABELS[conversation.status] || conversation.status}
-              </span>
-
-              <button
-                type="button"
-                onClick={handleToggleTakeover}
-                disabled={toggling}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                  isTakeover
-                    ? "bg-gray-900 text-white hover:bg-gray-800"
-                    : "border border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                {toggling
-                  ? "Cambiando..."
-                  : isTakeover
-                    ? "Devolver al bot"
-                    : "Tomar control"}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-1 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white">
-        {loadingMessages ? (
-          <div className="flex-1 p-6">
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-16 animate-pulse rounded-lg bg-gray-100"
-                />
-              ))}
-            </div>
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center">
-            <p className="text-gray-500">No hay mensajes en esta conversación</p>
-          </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto p-6">
-            {hasMore && (
-              <div className="mb-4 text-center">
-                <button
-                  type="button"
-                  onClick={handleLoadMore}
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900"
-                >
-                  Cargar más
-                </button>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.direction === "outgoing" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                      msg.direction === "outgoing"
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-100 text-gray-900"
-                    }`}
-                  >
-                    <p className="whitespace-pre-wrap break-words text-sm">
-                      {msg.content}
-                    </p>
-                    <div
-                      className={`mt-1 flex items-center gap-2 text-xs ${
-                        msg.direction === "outgoing"
-                          ? "text-blue-100"
-                          : "text-gray-500"
-                      }`}
-                    >
-                      <span>{formatTime(msg.created_at)}</span>
-                      {msg.direction === "outgoing" && (
-                        <span className="capitalize">{msg.status}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-        )}
-
-        <div className="border-t border-gray-200 p-4">
-          {sendError && (
-            <div className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-              {sendError}
-            </div>
-          )}
-
-          <div className="flex items-end gap-2">
-            <textarea
-              ref={textareaRef}
-              value={composerText}
-              onChange={(e) => setComposerText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Escribe un mensaje..."
-              disabled={sending}
-              rows={1}
-              className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <button
-              type="button"
-              onClick={handleSend}
-              disabled={sending || !composerText.trim()}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {sending ? "Enviando..." : "Enviar"}
-            </button>
-          </div>
+    <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+      {toggleError && (
+        <div className="border-b border-red-200 bg-red-50 px-6 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400" role="alert">
+          {toggleError}
         </div>
-      </div>
+      )}
+
+      <ConversationHeader
+        conversation={conversation}
+        onBack={handleBack}
+        onToggleStatus={toggleStatus}
+        toggling={toggling}
+      />
+
+      <MessageList
+        messages={messages}
+        loading={messagesLoading}
+        hasMore={hasMore}
+        onLoadMore={loadMore}
+      />
+
+      {showComposer && (
+        <Composer
+          onSend={sendMessage}
+          disabled={toggling}
+          sending={sending}
+          error={sendError}
+        />
+      )}
     </div>
   );
 }

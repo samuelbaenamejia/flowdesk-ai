@@ -620,12 +620,15 @@ Nunca ocultar errores. Nunca continuar el flujo con errores sin resolver.
 | n8n — Webhook trigger (PR C) | #16 | ✅ |
 | n8n — AI Responder (PR D) | #17 | ✅ |
 | n8n — Internal API (PR B) | #19 | ✅ |
-| n8n — Human Approval (PR E) | — | 🔄 |
+| n8n — Human Approval (PR E) | — | ✅ |
+| Frontend Foundation — Design System + Layout + Testing (F1) | #21 | ✅ |
+| F2 — Dashboard (lista de conversaciones) | — | ✅ |
+| F3 — Conversation Workspace | — | ✅ |
 | Testing | — | ⏳ |
 | Documentación final | — | ⏳ |
 
 ### 17.2 Cálculo de progreso
 
-Fases totales: 13
-Fases completadas: 11
-Progreso: ~85%
+Fases totales: 17
+Fases completadas: 15
+Progreso: ~88%

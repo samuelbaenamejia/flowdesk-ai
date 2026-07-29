@@ -339,7 +339,7 @@ Esto es lo que el 90% de los proyectos FastAPI en producción usan. Es simple, c
 | ADR-010 | Alembic | ✅ Mantener |
 | ADR-011 | Hexagonal Architecture | ❌ Clean Layers |
 | ADR-012 | Pydantic v2 | ✅ Mantener |
-| ADR-013 | Zustand | ⏳ Pendiente (decidir en implementación) |
+| ADR-013 | Zustand | ❌ Rechazada (React Context + hooks) |
 | ADR-014 | Redis Queue Mode | ❌ Eliminar (n8n main mode) |
 | ADR-015 | structlog | ✅ Mantener (sin Loki/Grafana/Prometheus) |
 | ADR-016 | Ruff | ✅ Mantener |
@@ -362,7 +362,7 @@ Esto es lo que el 90% de los proyectos FastAPI en producción usan. Es simple, c
 
 | Capa | Tecnología |
 |------|-----------|
-| Frontend | Next.js (Pages Router) en Vercel |
+| Frontend | Next.js (Pages Router) en Docker Compose |
 | Backend | FastAPI en Docker |
 | Orquestación | n8n en Docker (main mode) |
 | Base de Datos | PostgreSQL via Supabase Cloud |

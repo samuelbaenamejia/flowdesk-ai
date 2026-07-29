@@ -29,6 +29,7 @@ export interface Message {
 export interface GetMessagesParams {
   limit?: number;
   offset?: number;
+  after?: string;
 }
 
 export interface User {

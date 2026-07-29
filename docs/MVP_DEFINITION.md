@@ -107,7 +107,7 @@ El sistema recibirá mensajes de WhatsApp entrantes, los procesará con un LLM (
 |--------|------|-------------|
 | `GET` | `/api/v1/conversations` | Listar conversaciones (paginado, filtro por estado) |
 | `GET` | `/api/v1/conversations/{id}` | Obtener detalle de conversación |
-| `PATCH` | `/api/v1/conversations/{id}/status` | Cambiar estado (takeover / return to bot / close) |
+| `PATCH` | `/api/v1/conversations/{id}` | Cambiar estado (takeover / return to bot / close) |
 
 ### Mensajes
 
@@ -127,15 +127,10 @@ El sistema recibirá mensajes de WhatsApp entrantes, los procesará con un LLM (
 
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| `POST` | `/api/v1/webhooks/new-message` | Recibir mensaje procesado desde n8n |
-| `POST` | `/api/v1/webhooks/status-update` | Recibir actualización de estado de mensaje |
-
-### LLM
-
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| `POST` | `/api/v1/llm/classify` | Clasificar intención de un mensaje (Groq) |
-| `POST` | `/api/v1/llm/generate` | Generar respuesta para un mensaje (Groq) |
+| `GET` | `/api/v1/webhooks/whatsapp` | Verificación de webhook WhatsApp (verify token) |
+| `POST` | `/api/v1/webhooks/whatsapp` | Recepción de mensajes WhatsApp entrantes |
+| `POST` | `/api/v1/internal/conversations/{id}/trigger-ai` | n8n → disparar IA (Internal API, auth X-Internal-Key) |
+| `POST` | `/api/v1/internal/conversations/{id}/request-human-approval` | Escalamiento a humano (idempotente) |
 
 ### Salud
 
@@ -202,9 +197,10 @@ Usuario envía WhatsApp
     * n8n valida verify token
         │
         ▼
-[2] n8n → POST /api/v1/webhooks/new-message → FastAPI
-    * n8n transforma payload de Meta a formato interno
-    * Envía a FastAPI: { wa_id, contact_name, text, wa_message_id, timestamp }
+[2] FastAPI recibe webhook directo de WhatsApp Cloud API
+    * Meta envía POST a /api/v1/webhooks con payload estándar
+    * FastAPI valida verify token, parsea y normaliza el payload
+    * Si el mensaje es de texto, guarda en DB y notifica a n8n vía Internal API
         │
         ▼
 [3] FastAPI guarda en Supabase (PostgreSQL)
@@ -304,16 +300,15 @@ Usuario envía WhatsApp
 | agent_id | UUID (FK → agents, nullable) | Quién envió (null = bot) |
 | created_at | TIMESTAMPTZ | Fecha de creación |
 
-#### agents
+#### users
 | Columna | Tipo | Descripción |
 |---------|------|-------------|
 | id | UUID (PK) | ID interno |
 | email | TEXT (UNIQUE) | Email del agente |
-| name | TEXT | Nombre del agente |
-| avatar_url | TEXT | URL del avatar |
+| is_active | BOOLEAN | Estado activo/inactivo |
 | created_at | TIMESTAMPTZ | Fecha de creación |
 
-**Nota:** auth.agents se maneja via Supabase Auth. Esta tabla `agents` es el perfil adicional.
+**Nota:** La autenticación se maneja con Supabase Auth (JWT). El modelo `User` se usa para persistencia local en la base de datos del backend.
 
 ---
 

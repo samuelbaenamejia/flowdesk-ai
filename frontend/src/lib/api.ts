@@ -50,7 +50,8 @@ export async function getMe(token: string): Promise<User> {
 }
 
 export async function getConversations(
-  params?: GetConversationsParams
+  params?: GetConversationsParams,
+  signal?: AbortSignal
 ): Promise<Conversation[]> {
   const searchParams = new URLSearchParams();
 
@@ -67,7 +68,7 @@ export async function getConversations(
   const queryString = searchParams.toString();
   const url = `${API_URL}/api/v1/conversations${queryString ? `?${queryString}` : ""}`;
 
-  const response = await fetch(url, { headers: authHeaders() });
+  const response = await fetch(url, { headers: authHeaders(), signal });
 
   if (!response.ok) {
     throw new Error(`Error fetching conversations: ${response.status}`);
@@ -76,10 +77,10 @@ export async function getConversations(
   return response.json();
 }
 
-export async function getConversation(id: string): Promise<Conversation> {
+export async function getConversation(id: string, signal?: AbortSignal): Promise<Conversation> {
   const url = `${API_URL}/api/v1/conversations/${id}`;
 
-  const response = await fetch(url, { headers: authHeaders() });
+  const response = await fetch(url, { headers: authHeaders(), signal });
 
   if (!response.ok) {
     throw new Error(`Error fetching conversation: ${response.status}`);
@@ -90,7 +91,8 @@ export async function getConversation(id: string): Promise<Conversation> {
 
 export async function getConversationMessages(
   conversationId: string,
-  params?: GetMessagesParams
+  params?: GetMessagesParams,
+  signal?: AbortSignal
 ): Promise<Message[]> {
   const searchParams = new URLSearchParams();
 
@@ -100,11 +102,14 @@ export async function getConversationMessages(
   if (params?.offset) {
     searchParams.set("offset", String(params.offset));
   }
+  if (params?.after) {
+    searchParams.set("after", params.after);
+  }
 
   const queryString = searchParams.toString();
   const url = `${API_URL}/api/v1/conversations/${conversationId}/messages${queryString ? `?${queryString}` : ""}`;
 
-  const response = await fetch(url, { headers: authHeaders() });
+  const response = await fetch(url, { headers: authHeaders(), signal });
 
   if (!response.ok) {
     throw new Error(`Error fetching messages: ${response.status}`);
@@ -115,7 +120,8 @@ export async function getConversationMessages(
 
 export async function sendMessage(
   conversationId: string,
-  content: string
+  content: string,
+  signal?: AbortSignal
 ): Promise<Message> {
   const url = `${API_URL}/api/v1/conversations/${conversationId}/messages`;
 
@@ -123,6 +129,7 @@ export async function sendMessage(
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ content }),
+    signal,
   });
 
   if (!response.ok) {

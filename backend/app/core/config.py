@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     groq_max_tokens: int = 500
     groq_temperature: float = 0.7
     groq_history_limit: int = 10
+    company_name: str = "FlowDesk"
     groq_system_prompt: str = (
         "Eres un asistente de atención al cliente de {EMPRESA}. "
         "Responde de forma natural, útil y concisa. "

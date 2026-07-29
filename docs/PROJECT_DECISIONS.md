@@ -161,7 +161,7 @@
 
 ---
 
-## ADR-013: Zustand para Estado Global Frontend
+## ADR-013: Zustand para Estado Global Frontend → ❌ RECHAZADA
 
 | Campo | Valor |
 |-------|-------|
@@ -171,6 +171,8 @@
 | **Alternativas** | Redux Toolkit, Jotai, Valtio, React Context + useReducer, Recoil |
 | **Razón** | Zustand: API mínima (< 1KB), sin boilerplate (no actions/reducers/constants), tipado completo con TypeScript, persist middleware (localStorage), subscribe/selector para re-renders controlados, compatible con Server Components (store fuera del árbol React). Redux Toolkit es más verboso (slices, thunks, configureStore). Jotai/Valtio son atómicos (cada estado individual, más archivos). React Context causa re-renders en cascada. |
 | **Consecuencias** | + API minimalista, + tipado completo, + persistencia, + re-renders controlados, - ecosistema menor que Redux (middleware, devtools, comunidad), - no structure opinionada (puede derivar en stores desorganizados). |
+
+**Decisión final (2026-07-27):** No se usó Zustand. El estado global se limitó a la sesión del agente (AuthContext con React Context). Los datos de conversaciones se manejan con hooks locales (`useConversations`) que cachean estado interno con `useState`. React Context + hooks fue suficiente para el alcance del MVP. Si F3 o F4 requieren estado global adicional (WebSocket, múltiples stores), se reevaluará.
 
 ---
 
@@ -226,7 +228,7 @@ Tras la revisión de arquitectura, las siguientes ADRs fueron modificadas o elim
 | ADR-006 | pgvector + RAG + Embeddings | Eliminado (prompt engineering) | ELIMINADA |
 | ADR-007 | Traefik | Caddy | REEMPLAZADA |
 | ADR-011 | Hexagonal Architecture | Clean Layers | REEMPLAZADA |
-| ADR-013 | Zustand | Pendiente (decidir en implementación) | PENDIENTE |
+| ADR-013 | Zustand | React Context + hooks (ver nota abajo) | RECHAZADA |
 | ADR-014 | Redis Queue Mode | n8n main mode | ELIMINADA |
 
 Ver ARCHITECTURE_REVIEW.md para justificación detallada de cada cambio.
@@ -321,3 +323,29 @@ Ver ARCHITECTURE_REVIEW.md para justificación detallada de cada cambio.
 | **Alternativas** | RAG completo con pgvector (original), Prompt engineering con FAQs en system prompt |
 | **Razón** | Con 20-50 FAQs, el system prompt del LLM es suficiente y más simple. No necesitamos chunking, embeddings, vector DB, ni pipeline de ingesta. Si un día el conocimiento crece a 1000+ documentos, se añade RAG. Pero no antes. |
 | **Consecuencias** | + Elimina complejidad de RAG, + mismo resultado funcional, + system prompt simple, - conocimiento limitado a contexto del LLM (suficiente para MVP). |
+
+---
+
+### ADR-024: Dark Mode con Tailwind class strategy
+
+| Campo | Valor |
+|-------|-------|
+| **Fecha** | 2026-07-28 |
+| **Contexto** | El frontend necesita modo oscuro completo. Hay 4 estrategias posibles: Tailwind `dark:` class, CSS custom properties, `light-dark()` CSS nativo, o runtime JavaScript. |
+| **Problema** | Elegir estrategia de theming que sea mantenible a largo plazo, no rompa la arquitectura existente, y no añada dependencias. |
+| **Alternativas** | Tailwind `dark:` class (ELEGIDA), CSS custom properties + OKLCH, `light-dark()` CSS, Zustand + runtime |
+| **Razón** | Tailwind `dark:` class: cero dependencias nuevas, reutiliza el sistema de colores Tailwind existente, sin build complexity, purgado automático de clases no usadas, cualquier dev conoce el patrón `dark:`. CSS custom properties requeriría migrar todos los colores a variables y añadir postcss plugins. `light-dark()` es inmaduro. Zustand fue rechazado en ADR-013. |
+| **Consecuencias** | + Sin dependencias nuevas, + máximo DX (autocompletado Tailwind), + purgado automático, + mantenible por cualquier dev, - duplicación de clases (`bg-white dark:bg-gray-800`) en 22 archivos. |
+
+---
+
+### ADR-025: Smart Polling para Realtime (F4C)
+
+| Campo | Valor |
+|-------|-------|
+| **Fecha** | 2026-07-28 |
+| **Contexto** | El frontend necesita que los mensajes entrantes y cambios de estado se reflejen sin recarga manual. Sin añadir dependencias nuevas. |
+| **Problema** | Elegir estrategia de realtime que cumpla: <10s latencia, 0 nuevas dependencias, testing simple, mantenimiento mínimo. |
+| **Alternativas** | WebSockets, SSE (Server-Sent Events), Polling simple (cada 5s toda la lista), Smart Polling con `after` timestamp (ELEGIDA) |
+| **Razón** | Smart Polling con `after`: el frontend envía `new Date().toISOString()` como `after` param. El backend filtra con `Message.created_at > after`. Esto transfiere solo mensajes nuevos (payload típico vacío o 1-2 items). 0 nuevas dependencias backend/frontend. Sin cambios de infraestructura (no requiere proxy config). Testing trivial con fake timers. Latencia 5s aceptable para dashboard de atención al cliente (~100ms con push no justifica 5x más complejidad). WebSocket añade: dependencia `websockets`, connection manager, heartbeat, reconnection, proxy config, testing complejo. SSE añade: dependencia `sse-starlette`, EventManager, connection pool. Polling simple (sin `after`) transfiere toda la lista cada vez (waste de ancho de banda y CPU). |
+| **Consecuencias** | + 0 dependencias nuevas, + <50 líneas de código, + testing trivial, + sin cambios de infraestructura, - 5s latencia máxima vs ~100ms push (aceptable para el caso de uso), - polling incluso cuando no hay cambios (carga despreciable: 2 req/seg para 10 agentes). |

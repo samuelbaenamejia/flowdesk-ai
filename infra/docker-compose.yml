@@ -4,6 +4,7 @@ services:
       context: ../backend
     ports:
       - "8000:8000"
+    env_file: ../backend/.env
     environment:
       - ENVIRONMENT=development
 
@@ -18,11 +19,12 @@ services:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
 
   n8n:
-    image: n8nio/n8n:latest
+    image: n8nio/n8n:1.74.1
     ports:
       - "${N8N_PORT:-5678}:5678"
     environment:
       - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678}
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
       - DB_TYPE=${N8N_DB_TYPE:-sqlite}
       - DB_POSTGRESDB_HOST=${N8N_DB_HOST:-}

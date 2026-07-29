@@ -37,8 +37,10 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 | #19 | Internal API endpoint (PR B) | `feature/internal-api` |
 | #20 | n8n Human Approval workflow (PR E) | `feature/n8n-human-approval` |
 | #21 | Frontend Foundation (F1) | `feature/f1-frontend-foundation` |
+| — | F2 — Dashboard (refactor) | `feature/f2-dashboard` (fast-forward merge local) |
+| — | F3 — Conversation Workspace | `feature/f3-conversation-workspace` (fast-forward merge local) |
 
-> **Nota:** PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo).
+> **Nota:** PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo). F2 y F3 se mergearon localmente sin PR numerado.
 
 ---
 
@@ -83,8 +85,8 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
   - `PATCH /api/v1/conversations/{id}`
   - `GET /api/v1/conversations/{id}/messages` (pagination)
   - `POST /api/v1/conversations/{id}/messages` (create + send via WhatsApp)
-   - `GET /api/v1/webhooks` (verify)
-   - `POST /api/v1/webhooks` (receive)
+   - `GET /api/v1/webhooks/whatsapp` (verify)
+   - `POST /api/v1/webhooks/whatsapp` (receive)
    - `POST /api/v1/internal/conversations/{id}/trigger-ai` (n8n Internal API, auth X-Internal-Key)
    - `POST /api/v1/internal/conversations/{id}/request-human-approval` (escalamiento a humano, idempotente)
  
@@ -97,12 +99,15 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 ### Frontend
 
 - **Design System:** 7 UI components (Button + forwardRef, Input + useId, Badge, Table + getRowKey, Skeleton, EmptyState, ErrorState). Variantes: 4 Button (primary/secondary/destructive/ghost), 5 Badge (default/success/warning/info/error), 4 Skeleton (text/title/avatar/row).
-- **Layout:** AppShell (Sidebar w-16 icon-only + Header con user email + Logout + Main Content). Sidebar usa `useRouter()` para active state. Header usa `useAuth()` para datos de sesión.
-- **Testing:** Vitest + @testing-library/react + jsdom + coverage. 58 tests, 96.42% branch coverage. Thresholds configurados en 90%.
+- **Layout:** AppShell (Sidebar w-16 icon-only + Header con user email + Logout + Main Content). Sidebar usa `useRouter()` para active state. Header usa `useAuth()` para datos de sesión. Header y AppShell soportan `title` prop opcional.
+  - **Responsive (F4A):** AppShell con sidebar state + backdrop overlay en mobile. Sidebar slide-in/out con nav labels + user email. Header hamburger button + email/logout hidden en <768px. ConversationTable overflow-x-auto + columnas ocultas en mobile. Filters full-width en mobile. Pagination page counter oculto en mobile. ConversationHeader flex-wrap + padding responsive. MessageBubble max-w 85% mobile / 70% desktop. Composer gap reducido + text-base (iOS zoom). [id].tsx dvh en lugar de vh.
+- **Testing:** Vitest + @testing-library/react + jsdom + coverage. 153 tests, 21 files. Thresholds configurados en 90%.
+- **Workspace components:** ConversationHeader (back, contact name, badge, takeover/return), MessageBubble (inbound/outbound, delivery status, failed indicator), MessageList (scroll container, skeletons, EmptyState, load more, auto-scroll, scroll preservation on prepend), Composer (auto-resize textarea, Enter-to-send, error handling, content preserved on send failure).
+- **Hooks:** useConversation (fetch + 404 + toggleStatus + polling 15s + AbortController cleanup), useMessages (pagination LIMIT=50 + loadMore prepend + polling 5s + after timestamp + Set dedup + sendMessage), useConversations (fetch + pagination + filters + polling 10s + visibility pause/resume).
 - **Páginas:**
   - Login (refactorizado con Button + Input, role="alert" en errores, aria-labels)
-  - Conversations list (sin cambios — se refactoriza en F2)
-  - Conversation detail (sin cambios — se refactoriza en F3)
+  - Conversations list (refactorizada en F2: useConversations hook, filtros, paginación, skeletons, empty states contextuales)
+  - Conversation detail (refactorizada en F3: ConversationHeader + MessageList + Composer composition, loading skeleton, 404 EmptyState, error ErrorState con retry, toggleError banner)
 - **AuthContext:** Token + user state, login/logout, restauración de sesión, AuthGuard para rutas protegidas
 - **Inter font:** Cargada vía `next/font/google` con CSS variable.
 - **Tailwind:** `fontFamily.sans` configurado con Inter.
@@ -128,9 +133,24 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 
 El roadmap de integración con n8n está completo. Los 5 PRs del plan original están en main.
 
-## Próximo PR
+## PR completados (post-merge)
 
-**F2 — Dashboard:** Refactorizar la lista de conversaciones usando el design system de F1. Agregar `useConversations` hook, filtros, paginación, estados loading/empty/error con los componentes UI de F1.
+| Funcionalidad | Estado |
+|---------------|--------|
+| F4A — Responsive Design | ✅ Completado |
+| F4B — Dark Mode | ✅ Completado |
+| F4C — Realtime (Smart Polling) | ✅ Completado |
+
+### F4C — Realtime (Smart Polling)
+
+- **Estrategia:** Smart Polling con `after` timestamp (ISO 8601 UTC), sin WebSockets/SSE.
+- **Backend:** `GET /conversations/{id}/messages` ahora acepta query param `after: datetime | None` — filtra por `Message.created_at > after`.
+- **Frontend:** 3 hooks con polling diferenciado:
+  - `useMessages.ts`: polling 5s con `after` timestamp + Set-based dedup + `lastFetchRef`.
+  - `useConversations.ts`: polling 10s + `visibilitychange` pause/resume.
+  - `useConversation.ts`: polling 15s + AbortController cleanup + `visibilitychange`.
+- **Cero dependencias nuevas.** Testing: 153 tests pasan, build/lint OK.
+- **Documentación:** ADR-025 (Smart Polling), roadmap actualizado.
 
 ---
 

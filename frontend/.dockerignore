@@ -1,0 +1,14 @@
+.git
+.github
+node_modules
+.next
+.env
+.env.local
+__tests__
+coverage
+Dockerfile
+.gitignore
+next-env.d.ts
+README.md
+tsconfig.tsbuildinfo
+*.md

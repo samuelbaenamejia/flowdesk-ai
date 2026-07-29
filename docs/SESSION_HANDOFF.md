@@ -39,8 +39,11 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 | #21 | Frontend Foundation (F1) | `feature/f1-frontend-foundation` |
 | — | F2 — Dashboard (refactor) | `feature/f2-dashboard` (fast-forward merge local) |
 | — | F3 — Conversation Workspace | `feature/f3-conversation-workspace` (fast-forward merge local) |
+| — | F4A — Responsive Design | main (consolidated v0.4.0) |
+| — | F4B — Dark Mode | main (consolidated v0.4.0) |
+| — | F4C — Realtime (Smart Polling) | main (consolidated v0.4.0) |
 
-> **Nota:** PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo). F2 y F3 se mergearon localmente sin PR numerado.
+> **Nota:** PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo). F2, F3, F4A, F4B y F4C se mergearon directamente a main sin PR numerado (consolidados en v0.4.0).
 
 ---
 

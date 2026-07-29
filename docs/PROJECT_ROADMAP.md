@@ -33,8 +33,11 @@
 | #21 | Frontend Foundation (F1) | `feature/f1-frontend-foundation` | Design system, layout (AppShell/Sidebar/Header), testing infra (Vitest + RTL), UI components (Button/Input/Badge/Table/Skeleton/EmptyState/ErrorState), 58 tests, 96.42% branch coverage |
 | — | F2 — Dashboard (refactor) | `feature/f2-dashboard` (fast-forward merge local) | Refactor completo: useConversations hook, filtros, paginación, ConversationTable, 102 tests, 100% statements, 94.73% branches |
 | — | F3 — Conversation Workspace | `feature/f3-conversation-workspace` (fast-forward merge local) | Workspace de conversación: ConversationHeader, MessageBubble, MessageList, Composer, useConversation, useMessages, 153 tests, lint clean, 3 High/3 Medium/7 Low issues resueltos |
+| — | F4A — Responsive Design | main (consolidated v0.4.0) | AppShell sidebar state + backdrop mobile, tablas overflow-x-auto, dvh, hamburger menu |
+| — | F4B — Dark Mode | main (consolidated v0.4.0) | Tailwind `darkMode: "class"`, ThemeContext + useTheme, anti-flicker, 22 archivos con `dark:` |
+| — | F4C — Realtime (Smart Polling) | main (consolidated v0.4.0) | Polling 5s/10s/15s, `after` timestamp, Set dedup, visibility pause, 0 nuevas deps |
 
-> **Nota:** Los PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo). F1 es excepción de tamaño por ser fundacional (34 archivos). F2 y F3 se mergearon localmente sin PR numerado.
+> **Nota:** Los PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo). F1 es excepción de tamaño por ser fundacional (34 archivos). F2, F3, F4A, F4B y F4C se mergearon directamente a main sin PR numerado (consolidados en v0.4.0).
 
 ---
 
@@ -42,9 +45,6 @@
 
 | Funcionalidad | Descripción | Depende de |
 |---------------|-------------|------------|
-| F4A — Responsive | ✅ Completado | F3 |
-| F4B — Dark Mode | 🚧 En progreso | F4A |
-| F4C — Realtime | ✅ Completado | F4B |
 | Testing avanzado | Integration tests backend/frontend | — |
 | Documentación final | DEPLOY.md, CHANGELOG.md | — |
 

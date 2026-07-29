@@ -83,5 +83,5 @@ docker compose -f infra/docker-compose.yml up --build
 | F2 — Dashboard (lista de conversaciones) | Completada |
 | F3 — Conversation Workspace (chat bubbles, composer, takeover) | Completada |
 | F4 — Responsive (F4A) + Dark Mode (F4B) + Realtime Smart Polling (F4C) | Completada |
-| Testing avanzado | Pendiente |
-| Documentación final | Pendiente |
+| Testing avanzado — TESTING_GUIDELINES.md | Completada |
+| Documentación final — DEPLOY.md, CHANGELOG.md | Completada |

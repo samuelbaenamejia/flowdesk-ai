@@ -1,0 +1,10 @@
+services:
+  backend:
+    image: ghcr.io/flowdesk-ai/backend:latest
+    build: []
+    environment:
+      ENVIRONMENT: production
+
+  frontend:
+    image: ghcr.io/flowdesk-ai/frontend:latest
+    build: []

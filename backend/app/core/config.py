@@ -24,6 +24,7 @@ class Settings(BaseSettings):
         "Responde de forma natural, útil y concisa. "
         "Si no sabes algo, di que un agente te atenderá."
     )
+    cors_origins: str = "*"
     n8n_enabled: bool = False
     n8n_mode: Literal["disabled", "mirror", "primary"] = "disabled"
     n8n_webhook_url: str | None = None

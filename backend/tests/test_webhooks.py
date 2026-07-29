@@ -230,8 +230,9 @@ class TestReceiveMessage:
         )
         assert response.status_code == 200
 
-        from app.models.contact import Contact
         from sqlalchemy import select
+
+        from app.models.contact import Contact
 
         result = await db_session.execute(
             select(Contact).where(Contact.wa_id == "573001234567")
@@ -259,8 +260,9 @@ class TestReceiveMessage:
         mock_whatsapp,
         db_session,
     ):
-        from app.models.conversation import Conversation
         from sqlalchemy import select
+
+        from app.models.conversation import Conversation
 
         response = await client.post(
             "/api/v1/webhooks/whatsapp",
@@ -320,8 +322,9 @@ class TestReceiveMessage:
         )
         assert response.status_code == 200
 
-        from app.models.conversation import Conversation
         from sqlalchemy import select
+
+        from app.models.conversation import Conversation
 
         result = await db_session.execute(
             select(Conversation).where(
@@ -408,7 +411,6 @@ class TestReceiveMessage:
         db_session,
     ):
         from app.models.message import Message
-        from sqlalchemy import select
 
         msg = Message(
             conversation_id=test_conversation.id,

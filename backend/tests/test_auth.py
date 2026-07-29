@@ -1,4 +1,3 @@
-import pytest
 
 from app.models.user import User
 from tests.conftest import TEST_PASSWORD

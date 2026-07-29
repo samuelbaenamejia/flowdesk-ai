@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useEffect, type ReactNode } from "react";
 import { Inter } from "next/font/google";
 import AppShell from "@/components/layout/AppShell";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import "../styles/globals.css";
@@ -45,6 +46,7 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <ThemeProvider>
       <div className={`${inter.variable} font-sans`}>
+        <ErrorBoundary>
         <AuthProvider>
           <AuthGuard>
             {isLoginPage ? (
@@ -64,6 +66,7 @@ export default function App({ Component, pageProps }: AppProps) {
             )}
           </AuthGuard>
         </AuthProvider>
+        </ErrorBoundary>
       </div>
     </ThemeProvider>
   );

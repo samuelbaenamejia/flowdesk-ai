@@ -41,12 +41,14 @@
 
 ---
 
-## Pendiente
+## F5 — Production Readiness
 
-| Funcionalidad | Descripción | Depende de |
-|---------------|-------------|------------|
-| Testing avanzado | Integration tests backend/frontend | — |
-| Documentación final | DEPLOY.md, CHANGELOG.md | — |
+| PR | Funcionalidad | Estado | Branch |
+|----|---------------|--------|--------|
+| F5A | CI/CD Pipeline | ✅ Cerrado — merged a main (v0.5.0) | `main` |
+| F5B | Reverse proxy (Caddy + TLS) | ⬜ Pendiente | — |
+| F5C | Docker hardening | ⬜ Pendiente | — |
+| F5D | Health & Operations | ⬜ Pendiente | — |
 
 ### Roadmap n8n (completado)
 

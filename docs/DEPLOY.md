@@ -139,16 +139,66 @@ Los workflows de n8n se importan desde `infra/n8n/workflows/`.
 
 ---
 
-## 8. Producción
+## 8. Producción (CI/CD)
 
-Para despliegue en producción:
+El pipeline CI/CD está configurado en GitHub Actions:
 
-1. **Cambiar `ENVIRONMENT=production`** en backend/.env
-2. **Usar `SECRET_KEY` segura** (generar con `openssl rand -hex 32`)
-3. **Configurar Caddy** como reverse proxy con TLS automático
-4. **Base de datos:** Usar Supabase Cloud (no SQLite)
-5. **n8n:** Migrar de SQLite a PostgreSQL si se espera alto volumen
-6. **Health checks:** Configurar monitorización en `/health`
+- **CI** (`.github/workflows/ci.yml`): lint + test + build en cada push y PR
+- **CD** (`.github/workflows/deploy.yml`): build + push a GHCR + deploy vía SSH en push a main
+
+### 8.1 Prerequisitos (una vez)
+
+En el VPS:
+
+```bash
+# Clonar repositorio
+git clone https://github.com/samuelbaenamejia/flowdesk-ai.git ~/flowdesk-ai
+cd ~/flowdesk-ai
+
+# Crear .env con secrets de producción
+cp infra/.env.example backend/.env
+# Editar backend/.env con valores reales
+```
+
+En GitHub:
+
+| Secret | Propósito |
+|--------|-----------|
+| `SSH_HOST` | IP/Dominio del VPS |
+| `SSH_USER` | Usuario SSH |
+| `SSH_KEY` | Clave privada SSH |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `SECRET_KEY` | JWT secret |
+| `INTERNAL_API_KEY` | n8n auth |
+| `N8N_ENCRYPTION_KEY` | n8n encryption |
+| `WHATSAPP_*` | WhatsApp credentials |
+| `GROQ_API_KEY` | Groq LLM key |
+
+### 8.2 Deploy
+
+```bash
+# Automático: push a main → GitHub Actions deploya
+# Manual: correr infra/deploy.sh
+bash infra/deploy.sh              # usa latest
+bash infra/deploy.sh sha-abc1234  # tag específico
+```
+
+### 8.3 Rollback
+
+```bash
+bash infra/rollback.sh sha-abc1234
+# Si frontend tag es distinto:
+bash infra/rollback.sh sha-abc1234 sha-def5678
+```
+
+### 8.4 Arquitectura
+
+| Servicio | Puerto | Imagen |
+|----------|--------|--------|
+| Backend (FastAPI) | 8000 | `ghcr.io/flowdesk-ai/backend:latest` |
+| Frontend (Next.js) | 3000 | `ghcr.io/flowdesk-ai/frontend:latest` |
+| n8n | 5678 | `n8nio/n8n` (Docker Hub) |
+| PostgreSQL | — | Supabase Cloud (externo) |
 
 ---
 

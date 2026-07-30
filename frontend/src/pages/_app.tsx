@@ -62,7 +62,9 @@ export default function App({ Component, pageProps }: AppProps) {
                     ? "Conversaciones"
                     : router.pathname === "/conversations/[id]"
                       ? "Conversación"
-                      : "Dashboard"
+                      : router.pathname === "/contacts"
+                        ? "Contactos"
+                        : "Dashboard"
                 }
               >
                 <Component {...pageProps} />

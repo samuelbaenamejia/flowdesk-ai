@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Users } from "lucide-react";
 
 const navItems = [
   { label: "Conversaciones", href: "/conversations", icon: MessageSquare },
+  { label: "Contactos", href: "/contacts", icon: Users },
 ];
 
 interface SidebarProps {

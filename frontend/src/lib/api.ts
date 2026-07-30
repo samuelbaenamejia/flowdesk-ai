@@ -1,10 +1,16 @@
 import {
+  Contact,
+  ContactCreatePayload,
+  ContactListResponse,
+  ContactUpdatePayload,
   Conversation,
   GetConversationsParams,
   Message,
   GetMessagesParams,
-  User,
+  Tag,
+  TagCreatePayload,
   TokenResponse,
+  User,
 } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -317,4 +323,99 @@ export async function updateConversation(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status }),
   });
+}
+
+export async function getContacts(
+  params?: { q?: string; limit?: number; offset?: number },
+  signal?: AbortSignal
+): Promise<ContactListResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.q) searchParams.set("q", params.q);
+  if (params?.limit) searchParams.set("limit", String(params.limit));
+  if (params?.offset) searchParams.set("offset", String(params.offset));
+  const query = searchParams.toString();
+  const url = `${API_URL}/api/v1/contacts${query ? `?${query}` : ""}`;
+  return apiClient.request<ContactListResponse>(url, { signal });
+}
+
+export async function getContact(
+  id: string,
+  signal?: AbortSignal
+): Promise<Contact> {
+  return apiClient.request<Contact>(`${API_URL}/api/v1/contacts/${id}`, { signal });
+}
+
+export async function createContact(
+  payload: ContactCreatePayload
+): Promise<Contact> {
+  return apiClient.request<Contact>(`${API_URL}/api/v1/contacts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateContact(
+  id: string,
+  payload: ContactUpdatePayload
+): Promise<Contact> {
+  return apiClient.request<Contact>(`${API_URL}/api/v1/contacts/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteContact(id: string): Promise<void> {
+  await apiClient.request<void>(`${API_URL}/api/v1/contacts/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function hardDeleteContact(id: string): Promise<void> {
+  await apiClient.request<void>(`${API_URL}/api/v1/contacts/${id}/hard`, {
+    method: "DELETE",
+  });
+}
+
+export async function getTags(signal?: AbortSignal): Promise<Tag[]> {
+  return apiClient.request<Tag[]>(`${API_URL}/api/v1/tags`, { signal });
+}
+
+export async function createTag(payload: TagCreatePayload): Promise<Tag> {
+  return apiClient.request<Tag>(`${API_URL}/api/v1/tags`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteTag(id: string): Promise<void> {
+  await apiClient.request<void>(`${API_URL}/api/v1/tags/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function assignTag(
+  contactId: string,
+  tagId: string
+): Promise<void> {
+  await apiClient.request<void>(
+    `${API_URL}/api/v1/contacts/${contactId}/tags`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tag_id: tagId }),
+    }
+  );
+}
+
+export async function removeTag(
+  contactId: string,
+  tagId: string
+): Promise<void> {
+  await apiClient.request<void>(
+    `${API_URL}/api/v1/contacts/${contactId}/tags/${tagId}`,
+    { method: "DELETE" }
+  );
 }

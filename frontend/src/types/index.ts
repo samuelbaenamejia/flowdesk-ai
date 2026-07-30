@@ -102,3 +102,22 @@ export interface TagCreatePayload {
   name: string;
   color?: string;
 }
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string | null;
+  avatar_url: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface UpdateProfileRequest {
+  name?: string | null;
+  avatar_url?: string | null;
+}
+
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}

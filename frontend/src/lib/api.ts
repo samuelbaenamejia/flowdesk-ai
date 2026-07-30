@@ -1,4 +1,5 @@
 import {
+  ChangePasswordRequest,
   Contact,
   ContactCreatePayload,
   ContactListResponse,
@@ -10,7 +11,9 @@ import {
   Tag,
   TagCreatePayload,
   TokenResponse,
+  UpdateProfileRequest,
   User,
+  UserProfile,
 } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -418,4 +421,28 @@ export async function removeTag(
     `${API_URL}/api/v1/contacts/${contactId}/tags/${tagId}`,
     { method: "DELETE" }
   );
+}
+
+export async function getProfile(signal?: AbortSignal): Promise<UserProfile> {
+  return apiClient.request<UserProfile>(`${API_URL}/api/v1/auth/profile`, { signal });
+}
+
+export async function updateProfile(
+  payload: UpdateProfileRequest
+): Promise<UserProfile> {
+  return apiClient.request<UserProfile>(`${API_URL}/api/v1/auth/profile`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function changePassword(
+  payload: ChangePasswordRequest
+): Promise<void> {
+  await apiClient.request<void>(`${API_URL}/api/v1/auth/change-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 }

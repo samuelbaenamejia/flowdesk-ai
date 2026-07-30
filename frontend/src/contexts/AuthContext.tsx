@@ -1,63 +1,79 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { User } from "@/types";
-import { getMe, login as apiLogin } from "@/lib/api";
+import { apiClient } from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  token: null,
   loading: true,
   login: async () => {},
-  logout: () => {},
+  logout: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    if (!storedToken) {
+    return apiClient.subscribe((token) => {
+      if (!token) {
+        setUser(null);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    const storedRefresh = localStorage.getItem("refresh_token");
+    if (!storedRefresh) {
       setLoading(false);
       return;
     }
 
-    getMe(storedToken)
-      .then((userData) => {
-        setToken(storedToken);
-        setUser(userData);
-      })
-      .catch(() => {
-        localStorage.removeItem("token");
-      })
-      .finally(() => setLoading(false));
+    const existingToken = apiClient.getAccessToken();
+    if (existingToken) {
+      apiClient
+        .getMe()
+        .then((userData) => setUser(userData))
+        .catch(() => attemptSessionRestore())
+        .finally(() => setLoading(false));
+    } else {
+      attemptSessionRestore().finally(() => setLoading(false));
+    }
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const data = await apiLogin(email, password);
-    localStorage.setItem("token", data.access_token);
-    setToken(data.access_token);
+  async function attemptSessionRestore() {
+    try {
+      const success = await apiClient.refreshAuth();
+      if (success) {
+        const userData = await apiClient.getMe();
+        setUser(userData);
+      } else {
+        localStorage.removeItem("refresh_token");
+      }
+    } catch {
+      localStorage.removeItem("refresh_token");
+    }
+  }
 
-    const userData = await getMe(data.access_token);
+  const login = async (email: string, password: string) => {
+    await apiClient.login(email, password);
+    const userData = await apiClient.getMe();
     setUser(userData);
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    setToken(null);
+  const logout = async () => {
+    await apiClient.logout();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

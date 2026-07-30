@@ -8,7 +8,8 @@ class Settings(BaseSettings):
     backend_port: int = 8000
     database_url: str
     secret_key: str = "change-me-in-production"
-    access_token_expire_minutes: int = 1440  # 24 hours
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_minutes: int = 10080  # 7 days
     whatsapp_verify_token: str = ""
     whatsapp_phone_number_id: str = ""
     whatsapp_access_token: str = ""

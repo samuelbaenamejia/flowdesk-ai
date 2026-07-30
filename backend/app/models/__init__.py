@@ -6,6 +6,7 @@ from app.models.message import (
     MessageDirection,
     MessageStatus,
 )
+from app.models.refresh_token import RefreshToken
 from app.models.user import User
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     "MessageContentType",
     "MessageDirection",
     "MessageStatus",
+    "RefreshToken",
     "User",
 ]

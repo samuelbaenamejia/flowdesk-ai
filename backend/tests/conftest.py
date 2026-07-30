@@ -149,6 +149,13 @@ async def internal_headers() -> dict[str, str]:
     return {"X-Internal-Key": TEST_INTERNAL_API_KEY}
 
 
+@pytest.fixture(autouse=True)
+def clear_rate_limiter():
+    from app.core.security import rate_limit_login
+
+    rate_limit_login._attempts.clear()
+
+
 @pytest.fixture
 def mock_groq(monkeypatch):
     async def mock_generate_response(messages):

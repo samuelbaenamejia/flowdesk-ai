@@ -4,50 +4,239 @@ import {
   Message,
   GetMessagesParams,
   User,
+  TokenResponse,
 } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-function authHeaders(): Record<string, string> {
-  if (typeof window === "undefined") return {};
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
+export class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AuthError";
+  }
 }
 
-export async function login(
-  email: string,
-  password: string
-): Promise<{ access_token: string }> {
-  const url = `${API_URL}/api/v1/auth/login`;
+interface QueuedRequest {
+  resolve: (value: unknown) => void;
+  reject: (error: Error) => void;
+  retry: () => Promise<unknown>;
+}
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
+class ApiClient {
+  private accessToken: string | null = null;
+  private refreshPromise: Promise<boolean> | null = null;
+  private queue: QueuedRequest[] = [];
+  private subscribers = new Set<(token: string | null) => void>();
+  private channel: BroadcastChannel | null = null;
 
-  if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    const detail = body?.detail || "Error al iniciar sesión";
-    throw new Error(detail);
+  constructor() {
+    try {
+      this.channel = new BroadcastChannel("flowdesk-auth");
+      this.channel.onmessage = (e) => {
+        if (e.data?.type === "logout") this.handleRemoteLogout();
+      };
+    } catch {
+      // BroadcastChannel not available
+    }
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", (e) => {
+        if (e.key === "auth_event") {
+          try {
+            const ev = JSON.parse(e.newValue || "{}");
+            if (ev.type === "logout") this.handleRemoteLogout();
+          } catch {
+            // ignore
+          }
+        }
+      });
+    }
   }
 
-  return response.json();
-}
+  async request<T>(
+    url: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const headers = new Headers(options.headers);
+    if (this.accessToken) {
+      headers.set("Authorization", `Bearer ${this.accessToken}`);
+    }
 
-export async function getMe(token: string): Promise<User> {
-  const url = `${API_URL}/api/v1/auth/me`;
+    const response = await fetch(url, { ...options, headers });
 
-  const response = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+    if (response.ok) {
+      return response.json();
+    }
 
-  if (!response.ok) {
-    throw new Error("Error al obtener usuario");
+    if (response.status === 401) {
+      const body = await response.json().catch(() => ({}));
+      const errorCode = response.headers.get("X-Auth-Error") || body.code;
+
+      if (errorCode === "token_expired") {
+        return this.handleExpiredToken(() =>
+          this.request<T>(url, options)
+        );
+      }
+
+      throw new AuthError(body.detail || "Authentication failed");
+    }
+
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || `Request failed: ${response.status}`);
   }
 
-  return response.json();
+  private handleExpiredToken<T>(
+    retryFn: () => Promise<T>
+  ): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      this.queue.push({
+        resolve: resolve as (v: unknown) => void,
+        reject,
+        retry: retryFn as () => Promise<unknown>,
+      });
+
+      if (!this.refreshPromise) {
+        this.refreshPromise = this.executeRefresh().then((success) => {
+          this.drainQueue(success);
+          return success;
+        });
+      }
+    });
+  }
+
+  private async executeRefresh(): Promise<boolean> {
+    try {
+      const refreshToken = localStorage.getItem("refresh_token");
+      if (!refreshToken) return false;
+
+      const response = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+
+      if (!response.ok) return false;
+
+      const data: TokenResponse = await response.json();
+      this.setTokens(data.access_token, data.refresh_token);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      this.refreshPromise = null;
+    }
+  }
+
+  private drainQueue(success: boolean) {
+    const q = [...this.queue];
+    this.queue = [];
+
+    for (const item of q) {
+      if (success) {
+        item
+          .retry()
+          .then(item.resolve)
+          .catch(item.reject);
+      } else {
+        item.reject(new AuthError("Session expired"));
+      }
+    }
+
+    if (!success) {
+      this.clearTokens();
+      this.notifySubscribers(null);
+    }
+  }
+
+  setTokens(access: string, refresh: string) {
+    this.accessToken = access;
+    localStorage.setItem("refresh_token", refresh);
+    this.notifySubscribers(access);
+  }
+
+  clearTokens() {
+    this.accessToken = null;
+    localStorage.removeItem("refresh_token");
+    this.notifySubscribers(null);
+  }
+
+  getAccessToken(): string | null {
+    return this.accessToken;
+  }
+
+  async login(email: string, password: string): Promise<void> {
+    const response = await fetch(`${API_URL}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(body?.detail || "Error al iniciar sesión");
+    }
+
+    const data: TokenResponse = await response.json();
+    this.setTokens(data.access_token, data.refresh_token);
+    this.broadcastEvent({ type: "login" });
+  }
+
+  async logout(): Promise<void> {
+    const refreshToken = localStorage.getItem("refresh_token");
+    if (refreshToken) {
+      fetch(`${API_URL}/api/v1/auth/logout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      }).catch(() => {});
+    }
+    this.clearTokens();
+    this.broadcastEvent({ type: "logout" });
+  }
+
+  async getMe(): Promise<User> {
+    return this.request<User>(`${API_URL}/api/v1/auth/me`);
+  }
+
+  subscribe(callback: (token: string | null) => void): () => void {
+    this.subscribers.add(callback);
+    return () => this.subscribers.delete(callback);
+  }
+
+  private notifySubscribers(token: string | null) {
+    for (const cb of this.subscribers) {
+      try {
+        cb(token);
+      } catch {
+        // ignore subscriber error
+      }
+    }
+  }
+
+  private broadcastEvent(event: { type: string }) {
+    try {
+      localStorage.setItem("auth_event", JSON.stringify(event));
+      this.channel?.postMessage(event);
+    } catch {
+      // localStorage might be full
+    }
+  }
+
+  private handleRemoteLogout() {
+    this.accessToken = null;
+    localStorage.removeItem("refresh_token");
+    this.notifySubscribers(null);
+  }
+
+  async refreshAuth(): Promise<boolean> {
+    if (this.refreshPromise) {
+      return this.refreshPromise;
+    }
+    return this.executeRefresh();
+  }
 }
+
+export const apiClient = new ApiClient();
 
 export async function getConversations(
   params?: GetConversationsParams,
@@ -68,25 +257,15 @@ export async function getConversations(
   const queryString = searchParams.toString();
   const url = `${API_URL}/api/v1/conversations${queryString ? `?${queryString}` : ""}`;
 
-  const response = await fetch(url, { headers: authHeaders(), signal });
-
-  if (!response.ok) {
-    throw new Error(`Error fetching conversations: ${response.status}`);
-  }
-
-  return response.json();
+  return apiClient.request<Conversation[]>(url, { signal });
 }
 
-export async function getConversation(id: string, signal?: AbortSignal): Promise<Conversation> {
+export async function getConversation(
+  id: string,
+  signal?: AbortSignal
+): Promise<Conversation> {
   const url = `${API_URL}/api/v1/conversations/${id}`;
-
-  const response = await fetch(url, { headers: authHeaders(), signal });
-
-  if (!response.ok) {
-    throw new Error(`Error fetching conversation: ${response.status}`);
-  }
-
-  return response.json();
+  return apiClient.request<Conversation>(url, { signal });
 }
 
 export async function getConversationMessages(
@@ -109,13 +288,7 @@ export async function getConversationMessages(
   const queryString = searchParams.toString();
   const url = `${API_URL}/api/v1/conversations/${conversationId}/messages${queryString ? `?${queryString}` : ""}`;
 
-  const response = await fetch(url, { headers: authHeaders(), signal });
-
-  if (!response.ok) {
-    throw new Error(`Error fetching messages: ${response.status}`);
-  }
-
-  return response.json();
+  return apiClient.request<Message[]>(url, { signal });
 }
 
 export async function sendMessage(
@@ -125,20 +298,12 @@ export async function sendMessage(
 ): Promise<Message> {
   const url = `${API_URL}/api/v1/conversations/${conversationId}/messages`;
 
-  const response = await fetch(url, {
+  return apiClient.request<Message>(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ content }),
     signal,
   });
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    const detail = body?.detail || `Error sending message: ${response.status}`;
-    throw new Error(detail);
-  }
-
-  return response.json();
 }
 
 export async function updateConversation(
@@ -147,17 +312,9 @@ export async function updateConversation(
 ): Promise<Conversation> {
   const url = `${API_URL}/api/v1/conversations/${id}`;
 
-  const response = await fetch(url, {
+  return apiClient.request<Conversation>(url, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status }),
   });
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    const detail = body?.detail || `Error updating conversation: ${response.status}`;
-    throw new Error(detail);
-  }
-
-  return response.json();
 }

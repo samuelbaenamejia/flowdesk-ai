@@ -14,8 +14,8 @@ export default function Header({ title = "Dashboard", onToggleSidebar }: HeaderP
   const { user, logout } = useAuth();
   const { theme, toggleTheme, mounted } = useTheme();
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     router.push("/login");
   }
 

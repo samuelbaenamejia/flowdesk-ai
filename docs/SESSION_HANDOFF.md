@@ -1,6 +1,6 @@
 # SESSION_HANDOFF — FlowDesk-AI
 
-> Última actualización: 2026-07-27
+> Última actualización: 2026-07-28
 
 ---
 
@@ -178,6 +178,45 @@ uv run alembic revision --autogenerate -m "description"
 ```
 
 ---
+
+## Sprint Infra 1 (2026-07-28) — Release Hardening
+
+### Cambios realizados
+
+| Área | Cambio | Detalle |
+|------|--------|---------|
+| CORS | Configurable por entorno | `CORS_ORIGINS` en `.env` (default `*`). Backend usa `CORSMiddleware` con split por comas. |
+| Rate Limiting | `/auth/login` limitado | 5 intentos por IP cada 5 min. In-memory (sin Redis). Implementado como FastAPI dependency. |
+| Secrets | Validación al arranque | Log warning si `SECRET_KEY` o `INTERNAL_API_KEY` tienen valores por defecto. |
+| Request-ID | Middleware en backend | `X-Request-ID` header en todas las respuestas. Toma valor del request si existe, o genera UUID. |
+| Docker | Healthchecks | Backend: `curl --fail /health`. Frontend: `curl --fail /`. n8n: no tiene (external image). |
+| Docker | Restart policies | Todos los servicios: `restart: unless-stopped`. |
+| Frontend | ErrorBoundary | Class component que captura errores React, muestra fallback UI con botón de recarga. |
+| Lint | Unused imports | 7 `F401` removidos de `tests/` backend vía `ruff check --fix`. |
+
+## F5A — CI/CD Pipeline (2026-07-28) — ✅ CERRADO
+
+| Archivo | Propósito |
+|---------|-----------|
+| `.github/workflows/ci.yml` | CI: lint + test + build en PR/push |
+| `.github/workflows/deploy.yml` | CD: build + push GHCR + SSH deploy en push a main |
+| `infra/docker-compose.prod.yml` | Override producción (imágenes GHCR) |
+| `infra/deploy.sh` | Script deploy: pull, migrations, restart, healthcheck |
+| `infra/rollback.sh` | Script rollback por tag de commit |
+| `backend/scripts/entrypoint.sh` | Entrypoint: migrations + uvicorn |
+
+### Release Gate
+- **Score:** 98/100 — 6 hallazgos LOW (ninguno bloquea)
+- **Veredicto:** READY FOR F5B
+
+### Setup post-merge (manual, una vez)
+- Configurar secrets en GitHub Actions: SSH_HOST, SSH_KEY, SSH_USER, DATABASE_URL, SECRET_KEY, etc.
+- Setup del VPS: docker, docker compose, clonar repositorio, crear `backend/.env` con secrets reales
+
+### Próximos pasos
+- **F5B**: Caddy reverse proxy con TLS ← Siguiente
+- **F5C**: Docker hardening (resource limits, network isolation)
+- **F5D**: Health & Operations (monitoring, backups)
 
 ## Reglas permanentes
 

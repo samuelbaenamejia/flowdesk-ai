@@ -1,6 +1,5 @@
 from uuid import uuid4
 
-import pytest
 from httpx import AsyncClient
 
 from tests.conftest import TEST_CONVERSATION_ID

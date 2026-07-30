@@ -7,15 +7,18 @@ from app.models.message import (
     MessageStatus,
 )
 from app.models.refresh_token import RefreshToken
+from app.models.tag import ContactTag, Tag
 from app.models.user import User
 
 __all__ = [
     "Contact",
+    "ContactTag",
     "Conversation",
     "Message",
     "MessageContentType",
     "MessageDirection",
     "MessageStatus",
     "RefreshToken",
+    "Tag",
     "User",
 ]

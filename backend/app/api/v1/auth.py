@@ -12,19 +12,25 @@ from app.core.security import rate_limit_login
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.schemas.auth import (
+    ChangePasswordRequest,
     LoginRequest,
     LogoutRequest,
     RefreshRequest,
     TokenResponse,
+    UpdateProfileRequest,
+    UserProfileResponse,
     UserResponse,
 )
 from app.services.auth_service import (
     ALGORITHM,
     TokenErrorCode,
+    change_password,
     create_access_token,
     create_refresh_token,
     decode_access_token,
     get_user_by_email,
+    get_profile,
+    update_profile,
     verify_password,
 )
 
@@ -153,6 +159,35 @@ async def logout(
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: User = Depends(get_current_user)) -> UserResponse:
     return current_user
+
+
+@router.get("/profile", response_model=UserProfileResponse)
+async def profile(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    return await get_profile(db, current_user.id)
+
+
+@router.patch("/profile", response_model=UserProfileResponse)
+async def update_profile_endpoint(
+    payload: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    data = payload.model_dump(exclude_unset=True)
+    return await update_profile(db, current_user.id, data)
+
+
+@router.post("/change-password", status_code=204)
+async def change_password_endpoint(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await change_password(
+        db, current_user.id, payload.current_password, payload.new_password
+    )
 
 
 async def _issue_tokens(user: User, db: AsyncSession) -> TokenResponse:

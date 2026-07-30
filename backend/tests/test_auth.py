@@ -218,3 +218,146 @@ class TestMe:
             headers={"Authorization": f"Bearer {refresh_token}"},
         )
         assert response.status_code == 401
+
+
+class TestProfile:
+    async def test_get_profile_returns_profile(
+        self, client, auth_headers, test_user
+    ):
+        response = await client.get(
+            "/api/v1/auth/profile", headers=auth_headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == str(test_user.id)
+        assert data["email"] == test_user.email
+        assert data["name"] is None
+        assert data["avatar_url"] is None
+
+    async def test_get_profile_requires_auth(self, client):
+        response = await client.get("/api/v1/auth/profile")
+        assert response.status_code == 401
+
+    async def test_update_profile_name(
+        self, client, auth_headers
+    ):
+        response = await client.patch(
+            "/api/v1/auth/profile",
+            json={"name": "John Doe"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "John Doe"
+
+    async def test_update_profile_avatar(
+        self, client, auth_headers
+    ):
+        response = await client.patch(
+            "/api/v1/auth/profile",
+            json={"avatar_url": "https://example.com/avatar.png"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["avatar_url"] == "https://example.com/avatar.png"
+
+    async def test_update_profile_clear_fields(
+        self, client, auth_headers
+    ):
+        response = await client.patch(
+            "/api/v1/auth/profile",
+            json={"name": "Temp Name"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["name"] == "Temp Name"
+
+        response = await client.patch(
+            "/api/v1/auth/profile",
+            json={"name": None},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["name"] is None
+
+    async def test_update_profile_requires_auth(self, client):
+        response = await client.patch(
+            "/api/v1/auth/profile",
+            json={"name": "John"},
+        )
+        assert response.status_code == 401
+
+
+class TestChangePassword:
+    async def test_change_password_success(
+        self, client, auth_headers
+    ):
+        response = await client.post(
+            "/api/v1/auth/change-password",
+            json={
+                "current_password": TEST_PASSWORD,
+                "new_password": "NewPass12345!",
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 204
+
+        login_response = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": "test@example.com",
+                "password": "NewPass12345!",
+            },
+        )
+        assert login_response.status_code == 200
+
+    async def test_change_password_wrong_current(
+        self, client, auth_headers
+    ):
+        response = await client.post(
+            "/api/v1/auth/change-password",
+            json={
+                "current_password": "WrongPassword1!",
+                "new_password": "NewPass12345!",
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+        assert "incorrecta" in response.text
+
+    async def test_change_password_too_short(
+        self, client, auth_headers
+    ):
+        response = await client.post(
+            "/api/v1/auth/change-password",
+            json={
+                "current_password": TEST_PASSWORD,
+                "new_password": "123",
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 422
+
+    async def test_change_password_same_as_current(
+        self, client, auth_headers
+    ):
+        response = await client.post(
+            "/api/v1/auth/change-password",
+            json={
+                "current_password": TEST_PASSWORD,
+                "new_password": TEST_PASSWORD,
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+
+    async def test_change_password_requires_auth(self, client):
+        response = await client.post(
+            "/api/v1/auth/change-password",
+            json={
+                "current_password": "any",
+                "new_password": "NewPass12345!",
+            },
+        )
+        assert response.status_code == 401

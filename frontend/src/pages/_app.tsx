@@ -6,6 +6,8 @@ import AppShell from "@/components/layout/AppShell";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ToastProvider } from "@/contexts/ToastContext";
+import { ToastContainer } from "@/components/ui/Toast";
 import "../styles/globals.css";
 
 const inter = Inter({
@@ -45,7 +47,9 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <ThemeProvider>
+      <ToastProvider>
       <div className={`${inter.variable} font-sans`}>
+        <ToastContainer />
         <ErrorBoundary>
         <AuthProvider>
           <AuthGuard>
@@ -68,6 +72,7 @@ export default function App({ Component, pageProps }: AppProps) {
         </AuthProvider>
         </ErrorBoundary>
       </div>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

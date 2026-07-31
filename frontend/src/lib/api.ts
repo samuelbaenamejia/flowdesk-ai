@@ -5,9 +5,13 @@ import {
   ContactListResponse,
   ContactUpdatePayload,
   Conversation,
+  ConversationListResponse,
   GetConversationsParams,
-  Message,
   GetMessagesParams,
+  GlobalSearchParams,
+  GlobalSearchResponse,
+  Message,
+  MessageListResponse,
   Tag,
   TagCreatePayload,
   TokenResponse,
@@ -250,11 +254,20 @@ export const apiClient = new ApiClient();
 export async function getConversations(
   params?: GetConversationsParams,
   signal?: AbortSignal
-): Promise<Conversation[]> {
+): Promise<ConversationListResponse> {
   const searchParams = new URLSearchParams();
 
+  if (params?.q) {
+    searchParams.set("q", params.q);
+  }
   if (params?.status) {
     searchParams.set("status", params.status);
+  }
+  if (params?.date_from) {
+    searchParams.set("date_from", params.date_from);
+  }
+  if (params?.date_to) {
+    searchParams.set("date_to", params.date_to);
   }
   if (params?.limit) {
     searchParams.set("limit", String(params.limit));
@@ -266,7 +279,7 @@ export async function getConversations(
   const queryString = searchParams.toString();
   const url = `${API_URL}/api/v1/conversations${queryString ? `?${queryString}` : ""}`;
 
-  return apiClient.request<Conversation[]>(url, { signal });
+  return apiClient.request<ConversationListResponse>(url, { signal });
 }
 
 export async function getConversation(
@@ -281,9 +294,24 @@ export async function getConversationMessages(
   conversationId: string,
   params?: GetMessagesParams,
   signal?: AbortSignal
-): Promise<Message[]> {
+): Promise<MessageListResponse> {
   const searchParams = new URLSearchParams();
 
+  if (params?.q) {
+    searchParams.set("q", params.q);
+  }
+  if (params?.direction) {
+    searchParams.set("direction", params.direction);
+  }
+  if (params?.status) {
+    searchParams.set("status", params.status);
+  }
+  if (params?.date_from) {
+    searchParams.set("date_from", params.date_from);
+  }
+  if (params?.date_to) {
+    searchParams.set("date_to", params.date_to);
+  }
   if (params?.limit) {
     searchParams.set("limit", String(params.limit));
   }
@@ -297,7 +325,30 @@ export async function getConversationMessages(
   const queryString = searchParams.toString();
   const url = `${API_URL}/api/v1/conversations/${conversationId}/messages${queryString ? `?${queryString}` : ""}`;
 
-  return apiClient.request<Message[]>(url, { signal });
+  return apiClient.request<MessageListResponse>(url, { signal });
+}
+
+export async function globalSearch(
+  params: GlobalSearchParams,
+  signal?: AbortSignal
+): Promise<GlobalSearchResponse> {
+  const searchParams = new URLSearchParams();
+
+  searchParams.set("q", params.q);
+  if (params.scope) {
+    searchParams.set("scope", params.scope);
+  }
+  if (params.limit) {
+    searchParams.set("limit", String(params.limit));
+  }
+  if (params.offset) {
+    searchParams.set("offset", String(params.offset));
+  }
+
+  const queryString = searchParams.toString();
+  const url = `${API_URL}/api/v1/search${queryString ? `?${queryString}` : ""}`;
+
+  return apiClient.request<GlobalSearchResponse>(url, { signal });
 }
 
 export async function sendMessage(

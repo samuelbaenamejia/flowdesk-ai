@@ -1,7 +1,7 @@
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { useMessages } from "@/hooks/useMessages";
 import { getConversationMessages, sendMessage as apiSendMessage } from "@/lib/api";
-import type { Message } from "@/types";
+import type { Message, MessageListResponse } from "@/types";
 
 vi.mock("@/lib/api", () => ({
   getConversationMessages: vi.fn(),
@@ -21,6 +21,13 @@ const mockMessage: Message = {
 
 const LIMIT = 50;
 
+function paginated(
+  items: Message[],
+  total = items.length
+): MessageListResponse {
+  return { items, total, limit: LIMIT, offset: 0 };
+}
+
 const getMessagesMock = vi.mocked(getConversationMessages);
 const sendMessageMock = vi.mocked(apiSendMessage);
 
@@ -30,7 +37,7 @@ describe("useMessages", () => {
   });
 
   it("fetches messages on mount with conversationId", async () => {
-    getMessagesMock.mockResolvedValue([mockMessage]);
+    getMessagesMock.mockResolvedValue(paginated([mockMessage]));
     const { result } = renderHook(() => useMessages("1"));
 
     expect(result.current.loading).toBe(true);
@@ -43,6 +50,7 @@ describe("useMessages", () => {
       expect.any(AbortSignal)
     );
     expect(result.current.messages).toEqual([mockMessage]);
+    expect(result.current.total).toBe(1);
   });
 
   it("does not fetch without conversationId", () => {
@@ -51,12 +59,12 @@ describe("useMessages", () => {
   });
 
   it("loadMore increments offset and fetches again", async () => {
-    getMessagesMock.mockResolvedValue([mockMessage]);
+    getMessagesMock.mockResolvedValue(paginated([mockMessage]));
     const { result } = renderHook(() => useMessages("1"));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    getMessagesMock.mockResolvedValue([{ ...mockMessage, id: "m2" }]);
+    getMessagesMock.mockResolvedValue(paginated([{ ...mockMessage, id: "m2" }]));
 
     act(() => {
       result.current.loadMore();
@@ -73,12 +81,12 @@ describe("useMessages", () => {
     );
   });
 
-  it("sets hasMore when data.length >= LIMIT", async () => {
+  it("sets hasMore based on total", async () => {
     const manyMessages = Array.from({ length: LIMIT }, (_, i) => ({
       ...mockMessage,
       id: `m${i}`,
     }));
-    getMessagesMock.mockResolvedValue(manyMessages);
+    getMessagesMock.mockResolvedValue(paginated(manyMessages, 120));
     const { result } = renderHook(() => useMessages("1"));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -86,8 +94,8 @@ describe("useMessages", () => {
     expect(result.current.hasMore).toBe(true);
   });
 
-  it("sets hasMore to false when data.length < LIMIT", async () => {
-    getMessagesMock.mockResolvedValue([mockMessage]);
+  it("sets hasMore to false when offset + items >= total", async () => {
+    getMessagesMock.mockResolvedValue(paginated([mockMessage]));
     const { result } = renderHook(() => useMessages("1"));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -96,7 +104,7 @@ describe("useMessages", () => {
   });
 
   it("sendMessage appends new message to list", async () => {
-    getMessagesMock.mockResolvedValue([mockMessage]);
+    getMessagesMock.mockResolvedValue(paginated([mockMessage]));
     const { result } = renderHook(() => useMessages("1"));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -118,7 +126,7 @@ describe("useMessages", () => {
   });
 
   it("sendMessage sets sendError on failure", async () => {
-    getMessagesMock.mockResolvedValue([mockMessage]);
+    getMessagesMock.mockResolvedValue(paginated([mockMessage]));
     const { result } = renderHook(() => useMessages("1"));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -133,7 +141,7 @@ describe("useMessages", () => {
   });
 
   it("sendMessage does not call API with empty content", async () => {
-    getMessagesMock.mockResolvedValue([mockMessage]);
+    getMessagesMock.mockResolvedValue(paginated([mockMessage]));
     const { result } = renderHook(() => useMessages("1"));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -156,7 +164,7 @@ describe("useMessages", () => {
 
   it("prepends messages on loadMore", async () => {
     const initialMessages = [mockMessage];
-    getMessagesMock.mockResolvedValue(initialMessages);
+    getMessagesMock.mockResolvedValue(paginated(initialMessages));
     const { result } = renderHook(() => useMessages("1"));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -164,7 +172,7 @@ describe("useMessages", () => {
     const olderMessages = [
       { ...mockMessage, id: "m0", content: "Antiguo" },
     ];
-    getMessagesMock.mockResolvedValue(olderMessages);
+    getMessagesMock.mockResolvedValue(paginated(olderMessages));
 
     act(() => {
       result.current.loadMore();
@@ -185,5 +193,115 @@ describe("useMessages", () => {
     unmount();
 
     expect(firstSignal.aborted).toBe(true);
+  });
+
+  it("sends search and filters as query params", async () => {
+    getMessagesMock.mockResolvedValue(paginated([mockMessage]));
+    const { result } = renderHook(() => useMessages("1"));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    getMessagesMock.mockClear();
+
+    act(() => {
+      result.current.setDirectionFilter("outgoing");
+      result.current.setStatusFilter("failed");
+      result.current.setDateFrom("2026-01-01");
+      result.current.setDateTo("2026-06-30");
+    });
+
+    await waitFor(() => {
+      expect(getMessagesMock).toHaveBeenCalledWith(
+        "1",
+        {
+          direction: "outgoing",
+          status: "failed",
+          date_from: "2026-01-01",
+          date_to: "2026-06-30",
+          limit: LIMIT,
+          offset: 0,
+        },
+        expect.any(AbortSignal)
+      );
+    });
+  });
+
+  it("debounces search and sends q param", async () => {
+    getMessagesMock.mockResolvedValue(paginated([]));
+    const { result } = renderHook(() => useMessages("1"));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    getMessagesMock.mockClear();
+
+    act(() => {
+      result.current.setSearch("pedido");
+    });
+    expect(getMessagesMock).not.toHaveBeenCalled();
+
+    await waitFor(
+      () => {
+        expect(getMessagesMock).toHaveBeenCalledWith(
+          "1",
+          { q: "pedido", limit: LIMIT, offset: 0 },
+          expect.any(AbortSignal)
+        );
+      },
+      { timeout: 1000 }
+    );
+  });
+
+  it("does not poll when filters are active", async () => {
+    getMessagesMock.mockResolvedValue(paginated([mockMessage]));
+    const { result } = renderHook(() => useMessages("1"));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    getMessagesMock.mockClear();
+    act(() => {
+      result.current.setDirectionFilter("incoming");
+    });
+    await waitFor(() => expect(getMessagesMock).toHaveBeenCalledTimes(1));
+
+    getMessagesMock.mockClear();
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(getMessagesMock).not.toHaveBeenCalled();
+  });
+
+  it("resets offset when search changes", async () => {
+    getMessagesMock.mockResolvedValue(paginated([mockMessage]));
+    const { result } = renderHook(() => useMessages("1"));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => {
+      result.current.loadMore();
+    });
+    await waitFor(() => expect(result.current.offset).toBe(LIMIT));
+
+    act(() => {
+      result.current.setDirectionFilter("outgoing");
+    });
+
+    expect(result.current.offset).toBe(0);
+  });
+
+  it("exposes filters object with current state", async () => {
+    getMessagesMock.mockResolvedValue(paginated([mockMessage]));
+    const { result } = renderHook(() => useMessages("1"));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => {
+      result.current.setStatusFilter("sent");
+    });
+
+    expect(result.current.filters).toEqual({
+      q: "",
+      direction: "",
+      status: "sent",
+      date_from: null,
+      date_to: null,
+    });
   });
 });

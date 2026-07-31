@@ -19,3 +19,10 @@ class ConversationResponse(BaseModel):
     last_message_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+class ConversationListResponse(BaseModel):
+    items: list[ConversationResponse]
+    total: int
+    limit: int
+    offset: int

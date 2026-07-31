@@ -9,10 +9,27 @@ export interface Conversation {
   updated_at: string;
 }
 
+export interface ConversationFilters {
+  q: string;
+  status: string;
+  date_from: string | null;
+  date_to: string | null;
+}
+
 export interface GetConversationsParams {
+  q?: string;
   status?: string;
+  date_from?: string;
+  date_to?: string;
   limit?: number;
   offset?: number;
+}
+
+export interface ConversationListResponse {
+  items: Conversation[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface Message {
@@ -26,10 +43,58 @@ export interface Message {
   created_at: string;
 }
 
+export interface MessageFilters {
+  q: string;
+  direction: string;
+  status: string;
+  date_from: string | null;
+  date_to: string | null;
+}
+
 export interface GetMessagesParams {
+  q?: string;
+  direction?: "incoming" | "outgoing";
+  status?: string;
+  date_from?: string;
+  date_to?: string;
+  after?: string;
   limit?: number;
   offset?: number;
-  after?: string;
+}
+
+export interface MessageListResponse {
+  items: Message[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface SearchMessageResult {
+  id: string;
+  conversation_id: string;
+  contact_name: string;
+  content: string;
+  direction: "incoming" | "outgoing";
+  created_at: string;
+  highlight: string;
+}
+
+export interface GlobalSearchParams {
+  q: string;
+  scope?: "all" | "conversations" | "messages";
+  limit?: number;
+  offset?: number;
+}
+
+export interface GlobalSearchResponse {
+  conversations: {
+    items: Conversation[];
+    total: number;
+  };
+  messages: {
+    items: SearchMessageResult[];
+    total: number;
+  };
 }
 
 export interface User {

@@ -26,3 +26,22 @@ class MessageResponse(BaseModel):
     wa_message_id: str | None
     status: str
     created_at: datetime
+
+
+class MessageListResponse(BaseModel):
+    items: list[MessageResponse]
+    total: int
+    limit: int
+    offset: int
+
+
+class SearchMessageResult(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    conversation_id: uuid.UUID
+    contact_name: str
+    content: str
+    direction: str
+    created_at: datetime
+    highlight: str

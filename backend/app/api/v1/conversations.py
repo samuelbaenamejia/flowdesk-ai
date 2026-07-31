@@ -1,92 +1,51 @@
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
-from app.models.contact import Contact
-from app.models.conversation import Conversation
-from app.models.message import Message
-from app.schemas.conversation import ConversationResponse, ConversationUpdate
+from app.schemas.conversation import (
+    ConversationListResponse,
+    ConversationResponse,
+    ConversationUpdate,
+)
+from app.services.conversation_service import (
+    get_contact_name,
+    search_conversations,
+    update_conversation_status,
+)
+from app.services.conversation_service import (
+    get_conversation as service_get_conversation,
+)
 
 router = APIRouter()
 
-VALID_STATUSES = {"active", "human_takeover", "closed"}
 
-
-@router.get("/conversations", response_model=list[ConversationResponse])
+@router.get("/conversations", response_model=ConversationListResponse)
 async def list_conversations(
+    q: str | None = Query(None, description="Search by contact name or phone"),
     status_filter: str | None = Query(None, alias="status"),
+    date_from: datetime | None = Query(
+        None, description="Filter conversations created from this date"
+    ),
+    date_to: datetime | None = Query(
+        None, description="Filter conversations created until this date"
+    ),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
     _: None = Depends(get_current_user),
-) -> list[dict]:
-    subquery_last_msg = (
-        select(
-            Message.conversation_id,
-            Message.content.label("last_content"),
-            func.row_number()
-            .over(
-                partition_by=Message.conversation_id,
-                order_by=Message.created_at.desc(),
-            )
-            .label("rn"),
-        )
-        .subquery()
+) -> dict:
+    return await search_conversations(
+        db,
+        q=q,
+        status_filter=status_filter,
+        date_from=date_from,
+        date_to=date_to,
+        limit=limit,
+        offset=offset,
     )
-
-    query = (
-        select(
-            Conversation.id,
-            Conversation.contact_id,
-            Contact.name.label("contact_name"),
-            Conversation.status,
-            func.substring(subquery_last_msg.c.last_content, 1, 100).label(
-                "last_message_preview"
-            ),
-            Conversation.last_message_at,
-            Conversation.created_at,
-            Conversation.updated_at,
-        )
-        .join(Contact, Conversation.contact_id == Contact.id)
-        .outerjoin(
-            subquery_last_msg,
-            and_(
-                subquery_last_msg.c.conversation_id == Conversation.id,
-                subquery_last_msg.c.rn == 1,
-            ),
-        )
-    )
-
-    if status_filter is not None:
-        if status_filter not in VALID_STATUSES:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid status. Must be one of: {', '.join(sorted(VALID_STATUSES))}",
-            )
-        query = query.where(Conversation.status == status_filter)
-
-    query = query.order_by(Conversation.last_message_at.desc().nullslast())
-    query = query.offset(offset).limit(limit)
-
-    result = await db.execute(query)
-    rows = result.all()
-
-    return [
-        {
-            "id": row.id,
-            "contact_id": row.contact_id,
-            "contact_name": row.contact_name,
-            "status": row.status,
-            "last_message_preview": row.last_message_preview,
-            "last_message_at": row.last_message_at,
-            "created_at": row.created_at,
-            "updated_at": row.updated_at,
-        }
-        for row in rows
-    ]
 
 
 @router.get("/conversations/{id}", response_model=ConversationResponse)
@@ -95,63 +54,13 @@ async def get_conversation(
     db: AsyncSession = Depends(get_db),
     _: None = Depends(get_current_user),
 ) -> dict:
-    subquery_last_msg = (
-        select(
-            Message.conversation_id,
-            Message.content.label("last_content"),
-            func.row_number()
-            .over(
-                partition_by=Message.conversation_id,
-                order_by=Message.created_at.desc(),
-            )
-            .label("rn"),
-        )
-        .subquery()
-    )
-
-    query = (
-        select(
-            Conversation.id,
-            Conversation.contact_id,
-            Contact.name.label("contact_name"),
-            Conversation.status,
-            func.substring(subquery_last_msg.c.last_content, 1, 100).label(
-                "last_message_preview"
-            ),
-            Conversation.last_message_at,
-            Conversation.created_at,
-            Conversation.updated_at,
-        )
-        .join(Contact, Conversation.contact_id == Contact.id)
-        .outerjoin(
-            subquery_last_msg,
-            and_(
-                subquery_last_msg.c.conversation_id == Conversation.id,
-                subquery_last_msg.c.rn == 1,
-            ),
-        )
-        .where(Conversation.id == id)
-    )
-
-    result = await db.execute(query)
-    row = result.one_or_none()
-
-    if row is None:
+    result = await service_get_conversation(db, id)
+    if result is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Conversation with id '{id}' not found",
         )
-
-    return {
-        "id": row.id,
-        "contact_id": row.contact_id,
-        "contact_name": row.contact_name,
-        "status": row.status,
-        "last_message_preview": row.last_message_preview,
-        "last_message_at": row.last_message_at,
-        "created_at": row.created_at,
-        "updated_at": row.updated_at,
-    }
+    return result
 
 
 @router.patch("/conversations/{id}", response_model=ConversationResponse)
@@ -160,36 +69,15 @@ async def update_conversation(
     payload: ConversationUpdate,
     db: AsyncSession = Depends(get_db),
     _: None = Depends(get_current_user),
-) -> Conversation:
-    if payload.status not in VALID_STATUSES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid status. Must be one of: {', '.join(sorted(VALID_STATUSES))}",
-        )
+) -> dict:
+    conversation = await update_conversation_status(db, id, payload.status)
 
-    result = await db.execute(select(Conversation).where(Conversation.id == id))
-    conversation = result.scalar_one_or_none()
-
-    if conversation is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Conversation with id '{id}' not found",
-        )
-
-    conversation.status = payload.status
-
-    await db.commit()
-    await db.refresh(conversation)
-
-    contact_result = await db.execute(
-        select(Contact).where(Contact.id == conversation.contact_id)
-    )
-    contact = contact_result.scalar_one_or_none()
+    contact_name = await get_contact_name(db, conversation.contact_id)
 
     return {
         "id": conversation.id,
         "contact_id": conversation.contact_id,
-        "contact_name": contact.name if contact else "",
+        "contact_name": contact_name,
         "status": conversation.status,
         "last_message_preview": None,
         "last_message_at": conversation.last_message_at,

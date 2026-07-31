@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.11.0 (2026-07-31) — F6D: Inbox Search & Filtering
+
+### Backend
+- `GET /conversations` y `GET /conversations/{id}/messages` ahora aceptan filtros: `q` (búsqueda ILIKE sobre nombre/contacto/teléfono/contenido), `status`, `date_from`, `date_to` (+ `direction` en mensajes)
+- Respuestas paginadas: `{items, total, limit, offset}` en conversaciones y mensajes
+- Nuevo endpoint global `GET /search` con scope `all|conversations|messages` y `highlight` de contexto (±50 caracteres)
+- `conversation_service.py`: search_conversations, get_conversation, update_conversation_status, get_contact_name
+- 32 tests nuevos (151 en total, incluye `test_search.py`)
+
+### Frontend
+- Types + API client actualizados al formato paginado (`ConversationListResponse`, `MessageListResponse`, `GlobalSearchResponse`, etc.)
+- `useConversations`: filtros (search/status/fechas), debounce 300ms, polling pausado con filtros activos
+- `useMessages`: filtros (q/direction/status/fechas), debounce 300ms, polling pausado con filtros activos, `offset` expuesto
+- Nuevo `useGlobalSearch`: debounce 300ms, cache LRU (10 entradas), abort de requests obsoletos, retry
+- Tests: 171 en total (suites de hooks reescritas + `useGlobalSearch.test.tsx`)
+
 ## v0.5.0 (2026-07-28) — F5A: CI/CD Pipeline
 
 ### Infrastructure

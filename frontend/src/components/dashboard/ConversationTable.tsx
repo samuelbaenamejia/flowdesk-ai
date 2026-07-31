@@ -38,6 +38,8 @@ interface ConversationTableProps {
   conversations: Conversation[];
   statusFilter: string;
   loading: boolean;
+  searchQuery?: string;
+  dateRangeActive?: boolean;
   onSelectConversation: (id: string) => void;
 }
 
@@ -45,6 +47,8 @@ export function ConversationTable({
   conversations,
   statusFilter,
   loading,
+  searchQuery = "",
+  dateRangeActive = false,
   onSelectConversation,
 }: ConversationTableProps) {
   if (loading) {
@@ -58,6 +62,19 @@ export function ConversationTable({
   }
 
   if (conversations.length === 0) {
+    if (searchQuery || dateRangeActive) {
+      return (
+        <EmptyState
+          icon={Inbox}
+          title={
+            searchQuery
+              ? `Sin resultados para "${searchQuery}"`
+              : "No hay conversaciones en el rango de fechas"
+          }
+          description="Prueba con otros términos o limpia los filtros."
+        />
+      );
+    }
     const msg = EMPTY_MESSAGES[statusFilter] ?? {
       title: "No hay conversaciones",
       description: "Las conversaciones aparecerán cuando los clientes escriban.",

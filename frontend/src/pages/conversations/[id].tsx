@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import { useConversation, useMessages } from "@/hooks";
 import { ConversationHeader } from "@/components/workspace/ConversationHeader";
+import { MessageFilters } from "@/components/workspace/MessageFilters";
 import { MessageList } from "@/components/workspace/MessageList";
 import { Composer } from "@/components/workspace/Composer";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -10,8 +11,9 @@ import { MessageSquare } from "lucide-react";
 
 export default function ConversationDetailPage() {
   const router = useRouter();
-  const { id } = router.query;
+  const { id, msg } = router.query;
   const conversationId = typeof id === "string" ? id : undefined;
+  const scrollToMessageId = typeof msg === "string" ? msg : undefined;
 
   const {
     conversation,
@@ -27,15 +29,37 @@ export default function ConversationDetailPage() {
     messages,
     loading: messagesLoading,
     error: messagesError,
+    search,
+    directionFilter,
+    statusFilter,
+    dateFrom,
+    dateTo,
     hasMore,
+    setSearch,
+    setDirectionFilter,
+    setStatusFilter,
+    setDateFrom,
+    setDateTo,
     loadMore,
     sendMessage,
     sending,
     sendError,
   } = useMessages(conversationId);
 
+  const hasActiveFilters = Boolean(
+    search || directionFilter || statusFilter || dateFrom || dateTo
+  );
+
   function handleBack() {
     router.push("/conversations");
+  }
+
+  function handleClearFilters() {
+    setSearch("");
+    setDirectionFilter("");
+    setStatusFilter("");
+    setDateFrom(null);
+    setDateTo(null);
   }
 
   if (conversationLoading) {
@@ -105,11 +129,28 @@ export default function ConversationDetailPage() {
         toggling={toggling}
       />
 
+      <MessageFilters
+        search={search}
+        directionFilter={directionFilter}
+        statusFilter={statusFilter}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onSearchChange={setSearch}
+        onDirectionChange={setDirectionFilter}
+        onStatusChange={setStatusFilter}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
+        onClear={handleClearFilters}
+      />
+
       <MessageList
         messages={messages}
         loading={messagesLoading}
         hasMore={hasMore}
         onLoadMore={loadMore}
+        searchActive={hasActiveFilters}
+        searchQuery={search}
+        scrollToMessageId={scrollToMessageId}
       />
 
       {showComposer && (

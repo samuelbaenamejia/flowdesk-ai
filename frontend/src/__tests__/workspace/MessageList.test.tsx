@@ -53,6 +53,51 @@ describe("MessageList", () => {
     expect(screen.getByText("No hay mensajes")).toBeInTheDocument();
   });
 
+  it("renders contextual empty state with search active", () => {
+    render(
+      <MessageList
+        messages={[]}
+        loading={false}
+        hasMore={false}
+        onLoadMore={vi.fn()}
+        searchActive
+        searchQuery="pedido"
+      />
+    );
+
+    expect(screen.getByText('Sin resultados para "pedido"')).toBeInTheDocument();
+  });
+
+  it("renders generic empty state when search active without query", () => {
+    render(
+      <MessageList
+        messages={[]}
+        loading={false}
+        hasMore={false}
+        onLoadMore={vi.fn()}
+        searchActive
+      />
+    );
+
+    expect(screen.getByText("No hay mensajes que coincidan")).toBeInTheDocument();
+  });
+
+  it("renders messages when search is active", () => {
+    render(
+      <MessageList
+        messages={messages}
+        loading={false}
+        hasMore={false}
+        onLoadMore={vi.fn()}
+        searchActive
+        searchQuery="Hola"
+      />
+    );
+
+    expect(screen.getByText("Hola")).toBeInTheDocument();
+    expect(screen.getByText("Adiós")).toBeInTheDocument();
+  });
+
   it("renders load more button when hasMore is true", () => {
     render(
       <MessageList messages={messages} loading={false} hasMore={true} onLoadMore={vi.fn()} />

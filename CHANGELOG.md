@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.12.0 (2026-07-31) — F6D: Inbox Filters UI + Global Search UI
+
+### PR3 — Inbox Filters UI
+- `SearchBar`: input de búsqueda reutilizable con icono, botón limpiar y hint de atajo
+- `ConversationFilters`: filtros de búsqueda, estado (Todas/Activas/Takeover/Cerradas) y fechas para el dashboard
+- `MessageFilters`: búsqueda, dirección, estado y fechas para el workspace de conversación
+- `ConversationTable`: empty states contextuales (sin conversaciones / sin resultados de filtro)
+- `Pagination`: muestra rango "1 – 20 de 42" cuando se conoce el total
+- `MessageList`: muestra hint del término de búsqueda activo sobre los resultados
+- Página de conversaciones y detalle conectadas a los filtros (Limpiar filtros)
+- Se elimina el antiguo `ConversationsFilter` (reemplazado por `ConversationFilters`)
+
+### PR4 — Global Search UI
+- `useGlobalSearch` integrado en el Header: dropdown con resultados agrupados (conversaciones + mensajes)
+- Dropdown accesible: `role="listbox"`, `aria-activedescendant`, navegación con ArrowUp/Down, Enter, Escape, click fuera
+- Atajo de teclado `/` para enfocar la búsqueda desde cualquier página
+- Resultados con fragmento resaltado (highlight) del backend y badge de estado
+- Nueva página `/search`: resultados completos agrupados, skeletons, empty state y error con reintento
+- Deep-link `?msg=` al abrir un mensaje: scroll automático y resaltado del mensaje en la conversación
+- `MessageBubble`: `data-message-id` + prop `highlight` (ring amber) para el deep-link
+- Bugfix: `aria-expanded` recibía el texto del query en lugar de booleano
+
+### Verificación
+- Backend: 151/151 pytest · Frontend: 242/242 vitest (27 files) · tsc 0 errores
+
 ## v0.11.0 (2026-07-31) — F6D: Inbox Search & Filtering
 
 ### Backend

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageSquare } from "lucide-react";
 import { Message } from "@/types";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -11,6 +11,9 @@ interface MessageListProps {
   loading: boolean;
   hasMore: boolean;
   onLoadMore: () => void;
+  searchActive?: boolean;
+  searchQuery?: string;
+  scrollToMessageId?: string;
 }
 
 export function MessageList({
@@ -18,12 +21,29 @@ export function MessageList({
   loading,
   hasMore,
   onLoadMore,
+  searchActive = false,
+  searchQuery = "",
+  scrollToMessageId = "",
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const prevLengthRef = useRef(messages.length);
   const prevScrollHeightRef = useRef(0);
   const isLoadingMoreRef = useRef(false);
+  const scrolledToRef = useRef<string | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!scrollToMessageId || loading) return;
+    if (scrolledToRef.current === scrollToMessageId) return;
+    const el = containerRef.current?.querySelector(
+      `[data-message-id="${scrollToMessageId}"]`
+    );
+    if (!el) return;
+    el.scrollIntoView({ block: "center" });
+    setHighlightedMessageId(scrollToMessageId);
+    scrolledToRef.current = scrollToMessageId;
+  }, [scrollToMessageId, loading, messages.length]);
 
   function handleLoadMore() {
     if (containerRef.current) {
@@ -36,6 +56,11 @@ export function MessageList({
   useEffect(() => {
     const prevLength = prevLengthRef.current;
     prevLengthRef.current = messages.length;
+
+    if (searchActive) {
+      isLoadingMoreRef.current = false;
+      return;
+    }
 
     if (isLoadingMoreRef.current) {
       const container = containerRef.current;
@@ -57,7 +82,7 @@ export function MessageList({
     if (messages.length > prevLength && prevLength > 0) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages.length]);
+  }, [messages.length, searchActive]);
 
   if (loading && messages.length === 0) {
     return (
@@ -70,6 +95,21 @@ export function MessageList({
   }
 
   if (!loading && messages.length === 0) {
+    if (searchActive) {
+      return (
+        <div className="flex-1 p-6">
+          <EmptyState
+            icon={MessageSquare}
+            title={
+              searchQuery
+                ? `Sin resultados para "${searchQuery}"`
+                : "No hay mensajes que coincidan"
+            }
+            description="Prueba con otros términos o cambia los filtros."
+          />
+        </div>
+      );
+    }
     return (
       <div className="flex-1 p-6">
         <EmptyState
@@ -99,7 +139,11 @@ export function MessageList({
 
       <div className="space-y-4">
         {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} />
+          <MessageBubble
+            key={msg.id}
+            message={msg}
+            highlight={highlightedMessageId === msg.id}
+          />
         ))}
         <div ref={bottomRef} />
       </div>

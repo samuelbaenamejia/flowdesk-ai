@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { useConversations } from "@/hooks/useConversations";
 import { ConversationTable } from "@/components/dashboard/ConversationTable";
-import { ConversationsFilter } from "@/components/dashboard/ConversationsFilter";
+import { ConversationFilters } from "@/components/dashboard/ConversationFilters";
 import { Pagination } from "@/components/dashboard/Pagination";
 import { ErrorState } from "@/components/ui/ErrorState";
 
@@ -10,12 +10,19 @@ export default function ConversationsPage() {
   const router = useRouter();
   const {
     conversations,
+    total,
     loading,
     error,
     statusFilter,
+    search,
+    dateFrom,
+    dateTo,
     offset,
     hasMore,
     setStatusFilter,
+    setSearch,
+    setDateFrom,
+    setDateTo,
     handlePrevious,
     handleNext,
     retry,
@@ -39,6 +46,13 @@ export default function ConversationsPage() {
     }
   }, [loading, error, conversations.length]);
 
+  function handleClearFilters() {
+    setSearch("");
+    setStatusFilter("");
+    setDateFrom(null);
+    setDateTo(null);
+  }
+
   return (
     <div>
       <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-50">Conversaciones</h2>
@@ -52,13 +66,25 @@ export default function ConversationsPage() {
       ) : (
         <>
           <div className="mb-4">
-            <ConversationsFilter value={statusFilter} onChange={setStatusFilter} />
+            <ConversationFilters
+              search={search}
+              statusFilter={statusFilter}
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onSearchChange={setSearch}
+              onStatusChange={setStatusFilter}
+              onDateFromChange={setDateFrom}
+              onDateToChange={setDateTo}
+              onClear={handleClearFilters}
+            />
           </div>
 
           <ConversationTable
             conversations={conversations}
             statusFilter={statusFilter}
             loading={loading}
+            searchQuery={search}
+            dateRangeActive={Boolean(dateFrom || dateTo)}
             onSelectConversation={(id) => router.push(`/conversations/${id}`)}
           />
 
@@ -70,6 +96,7 @@ export default function ConversationsPage() {
                 hasMore={hasMore}
                 loading={loading}
                 count={conversations.length}
+                total={total}
                 onPrevious={handlePrevious}
                 onNext={handleNext}
               />

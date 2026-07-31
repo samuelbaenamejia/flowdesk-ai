@@ -6,6 +6,7 @@ interface PaginationProps {
   hasMore: boolean;
   loading: boolean;
   count: number;
+  total?: number;
   onPrevious: () => void;
   onNext: () => void;
 }
@@ -16,11 +17,14 @@ export function Pagination({
   hasMore,
   loading,
   count,
+  total,
   onPrevious,
   onNext,
 }: PaginationProps) {
   const from = count > 0 ? offset + 1 : 0;
   const to = offset + count;
+  const rangeLabel =
+    total !== undefined && total > 0 ? `${from} – ${to} de ${total}` : `${from} – ${to}`;
 
   return (
     <div className="flex items-center justify-between">
@@ -34,7 +38,7 @@ export function Pagination({
         Anterior
       </Button>
       <span className="hidden md:inline text-sm text-gray-500 dark:text-gray-400" aria-live="polite">
-        {from} – {to}
+        {rangeLabel}
       </span>
       <Button
         variant="secondary"

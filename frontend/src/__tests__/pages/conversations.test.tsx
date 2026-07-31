@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRouter } from "next/router";
 import { useConversations } from "@/hooks/useConversations";
@@ -18,12 +18,19 @@ const mockPush = vi.fn();
 function createMockReturn(overrides: Record<string, unknown> = {}) {
   return {
     conversations: [],
+    total: 0,
     loading: false,
     error: null,
     statusFilter: "",
+    search: "",
+    dateFrom: null,
+    dateTo: null,
     offset: 0,
     hasMore: false,
     setStatusFilter: vi.fn(),
+    setSearch: vi.fn(),
+    setDateFrom: vi.fn(),
+    setDateTo: vi.fn(),
     handlePrevious: vi.fn(),
     handleNext: vi.fn(),
     retry: vi.fn(),
@@ -146,5 +153,67 @@ describe("ConversationsPage", () => {
     expect(screen.queryByText("Error de red")).not.toBeInTheDocument();
     const skeletons = document.querySelectorAll(".animate-pulse");
     expect(skeletons.length).toBe(5);
+  });
+
+  it("calls setSearch when typing in the search input", () => {
+    const setSearch = vi.fn();
+    mockUseConversations.mockReturnValue(createMockReturn({ setSearch }));
+    render(<ConversationsPage />);
+    fireEvent.change(screen.getByLabelText("Buscar conversaciones por contacto"), {
+      target: { value: "ana" },
+    });
+    expect(setSearch).toHaveBeenCalledWith("ana");
+  });
+
+  it("clears all filters when clicking Limpiar filtros", async () => {
+    const setSearch = vi.fn();
+    const setStatusFilter = vi.fn();
+    const setDateFrom = vi.fn();
+    const setDateTo = vi.fn();
+    mockUseConversations.mockReturnValue(
+      createMockReturn({
+        search: "ana",
+        statusFilter: "active",
+        dateFrom: "2026-01-01",
+        dateTo: "2026-06-30",
+        setSearch,
+        setStatusFilter,
+        setDateFrom,
+        setDateTo,
+      })
+    );
+    render(<ConversationsPage />);
+    expect(screen.getByText("4 activos")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Limpiar filtros" }));
+    expect(setSearch).toHaveBeenCalledWith("");
+    expect(setStatusFilter).toHaveBeenCalledWith("");
+    expect(setDateFrom).toHaveBeenCalledWith(null);
+    expect(setDateTo).toHaveBeenCalledWith(null);
+  });
+
+  it("shows range with total in pagination", () => {
+    const items = Array.from({ length: 20 }, (_, i) => ({
+      id: String(i + 1),
+      contact_id: `c${i}`,
+      contact_name: `User ${i + 1}`,
+      status: "active" as const,
+      last_message_preview: "msg",
+      last_message_at: new Date().toISOString(),
+      created_at: "",
+      updated_at: "",
+    }));
+    mockUseConversations.mockReturnValue(
+      createMockReturn({ conversations: items, total: 42, hasMore: true })
+    );
+    render(<ConversationsPage />);
+    expect(screen.getByText("1 – 20 de 42")).toBeInTheDocument();
+  });
+
+  it("shows search empty state when there are no results", () => {
+    mockUseConversations.mockReturnValue(
+      createMockReturn({ search: "ana" })
+    );
+    render(<ConversationsPage />);
+    expect(screen.getByText('Sin resultados para "ana"')).toBeInTheDocument();
   });
 });

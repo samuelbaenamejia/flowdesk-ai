@@ -125,6 +125,46 @@ describe("ConversationTable", () => {
     expect(screen.getByText("No hay conversaciones cerradas")).toBeInTheDocument();
   });
 
+  it("renders empty state with search query", () => {
+    render(
+      <ConversationTable
+        conversations={[]}
+        statusFilter=""
+        loading={false}
+        searchQuery="ana"
+        onSelectConversation={() => {}}
+      />
+    );
+    expect(screen.getByText('Sin resultados para "ana"')).toBeInTheDocument();
+  });
+
+  it("renders empty state for date range filter", () => {
+    render(
+      <ConversationTable
+        conversations={[]}
+        statusFilter=""
+        loading={false}
+        dateRangeActive
+        onSelectConversation={() => {}}
+      />
+    );
+    expect(screen.getByText("No hay conversaciones en el rango de fechas")).toBeInTheDocument();
+  });
+
+  it("prioritizes search query empty state over status", () => {
+    render(
+      <ConversationTable
+        conversations={[]}
+        statusFilter="active"
+        loading={false}
+        searchQuery="ana"
+        onSelectConversation={() => {}}
+      />
+    );
+    expect(screen.getByText('Sin resultados para "ana"')).toBeInTheDocument();
+    expect(screen.queryByText("No hay conversaciones activas")).not.toBeInTheDocument();
+  });
+
   it("maps active status to success badge", () => {
     render(
       <ConversationTable

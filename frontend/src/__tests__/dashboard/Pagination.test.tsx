@@ -114,6 +114,22 @@ describe("Pagination", () => {
     expect(screen.getByText("1 – 20")).toBeInTheDocument();
   });
 
+  it("shows range indicator with total", () => {
+    render(
+      <Pagination
+        offset={0}
+        limit={20}
+        hasMore={true}
+        loading={false}
+        count={20}
+        total={42}
+        onPrevious={() => {}}
+        onNext={() => {}}
+      />
+    );
+    expect(screen.getByText("1 – 20 de 42")).toBeInTheDocument();
+  });
+
   it("has accessible labels on buttons", () => {
     render(
       <Pagination

@@ -32,6 +32,7 @@ docker-compose.override.yml
 # Project
 *.log
 *.pid
+*.tsbuildinfo
 
 # Coverage
 coverage/

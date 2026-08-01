@@ -6,12 +6,14 @@ import {
   ContactUpdatePayload,
   Conversation,
   ConversationListResponse,
+  DashboardStats,
   GetConversationsParams,
   GetMessagesParams,
   GlobalSearchParams,
   GlobalSearchResponse,
   Message,
   MessageListResponse,
+  MessagesOverTimeResponse,
   Tag,
   TagCreatePayload,
   TokenResponse,
@@ -349,6 +351,23 @@ export async function globalSearch(
   const url = `${API_URL}/api/v1/search${queryString ? `?${queryString}` : ""}`;
 
   return apiClient.request<GlobalSearchResponse>(url, { signal });
+}
+
+export async function getDashboardStats(
+  signal?: AbortSignal
+): Promise<DashboardStats> {
+  return apiClient.request<DashboardStats>(`${API_URL}/api/v1/dashboard/stats`, {
+    signal,
+  });
+}
+
+export async function getMessagesOverTime(
+  signal?: AbortSignal
+): Promise<MessagesOverTimeResponse> {
+  return apiClient.request<MessagesOverTimeResponse>(
+    `${API_URL}/api/v1/dashboard/messages-over-time`,
+    { signal }
+  );
 }
 
 export async function sendMessage(

@@ -24,6 +24,14 @@ describe("Sidebar", () => {
     expect(link).toBeInTheDocument();
   });
 
+  it("renders dashboard link first", () => {
+    render(<Sidebar />);
+    const dashboard = screen.getByTitle("Dashboard");
+    expect(dashboard).toBeInTheDocument();
+    const links = screen.getAllByRole("link");
+    expect(links[0].title).toBe("Dashboard");
+  });
+
   it("highlights active route", () => {
     render(<Sidebar />);
     const link = screen.getByTitle("Conversaciones");

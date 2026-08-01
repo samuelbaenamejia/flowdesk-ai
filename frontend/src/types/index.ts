@@ -186,3 +186,27 @@ export interface ChangePasswordRequest {
   current_password: string;
   new_password: string;
 }
+
+export interface TopContact {
+  wa_id: string | null;
+  name: string;
+  message_count: number;
+}
+
+export interface DashboardStats {
+  total_conversations: number;
+  messages_today: number;
+  messages_this_week: number;
+  response_rate: number;
+  avg_response_time_minutes: number;
+  top_contacts: TopContact[];
+}
+
+export interface MessagesOverTimePoint {
+  date: string;
+  count: number;
+}
+
+export interface MessagesOverTimeResponse {
+  data: MessagesOverTimePoint[];
+}

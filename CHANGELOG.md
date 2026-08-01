@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.13.0 (2026-07-31) — F6E: Dashboard & KPIs
+
+### PR 6E.1 — Dashboard API
+- `GET /dashboard/stats`: total de conversaciones, mensajes hoy y esta semana (UTC), tasa de respuesta %, tiempo medio de respuesta (min) y top-5 contactos por mensajes
+- `GET /dashboard/messages-over-time`: serie de 30 días completada con ceros (fechas ISO)
+- Métricas definidas sobre pares primera-entrada/primera-salida por conversación; ventanas en UTC (semana inicia lunes)
+- `dashboard_service.py` + schemas dedicados; endpoints protegidos con JWT
+- 5 tests nuevos (156 en total)
+
+### PR 6E.2 — Dashboard UI
+- `useDashboard`: stats, gráfico y recientes con estados de carga/error/reintento independientes, abort de requests y refresco al volver a la pestaña
+- `StatCard` y `MessagesChart` (SVG accesible con tooltip al hover y etiquetas de fecha)
+- Nueva página `/dashboard`: 4 tarjetas KPI, gráfico de mensajes por día y últimas 5 conversaciones reutilizando `ConversationTable`; empty state con CTA a Contactos
+- Navegación: ítem Dashboard en el sidebar, redirect de `/` y de login autenticado a `/dashboard`
+- Formateo de miles determinista (compatible con SSR)
+- Tests: 24 nuevos (266 en total, 32 files)
+
+### Verificación
+- Backend: 156/156 pytest · Frontend: 266/266 vitest (32 files) · tsc 0 errores
+
 ## v0.12.0 (2026-07-31) — F6D: Inbox Filters UI + Global Search UI
 
 ### PR3 — Inbox Filters UI

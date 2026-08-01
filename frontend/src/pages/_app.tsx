@@ -26,7 +26,7 @@ function AuthGuard({ children }: { children: ReactNode }) {
       router.replace("/login");
     }
     if (isLoginPage && user) {
-      router.replace("/conversations");
+      router.replace("/dashboard");
     }
   }, [loading, user, isLoginPage, router]);
 
@@ -58,15 +58,17 @@ export default function App({ Component, pageProps }: AppProps) {
             ) : (
               <AppShell
                 title={
-                  router.pathname === "/conversations"
-                    ? "Conversaciones"
-                    : router.pathname === "/conversations/[id]"
-                      ? "Conversación"
-                      : router.pathname === "/contacts"
-                        ? "Contactos"
-                        : router.pathname === "/profile"
-                          ? "Perfil"
-                          : "Dashboard"
+                  router.pathname === "/dashboard"
+                    ? "Dashboard"
+                    : router.pathname === "/conversations"
+                      ? "Conversaciones"
+                      : router.pathname === "/conversations/[id]"
+                        ? "Conversación"
+                        : router.pathname === "/contacts"
+                          ? "Contactos"
+                          : router.pathname === "/profile"
+                            ? "Perfil"
+                            : "Dashboard"
                 }
               >
                 <Component {...pageProps} />

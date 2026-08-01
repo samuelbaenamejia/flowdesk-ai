@@ -5,7 +5,7 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/conversations");
+    router.replace("/dashboard");
   }, [router]);
 
   return null;

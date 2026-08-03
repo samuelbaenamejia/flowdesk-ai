@@ -41,6 +41,7 @@ async def search_conversations(
             Conversation.contact_id,
             Contact.name.label("contact_name"),
             Conversation.status,
+            Conversation.unread_count,
             func.substring(subquery_last_msg.c.last_content, 1, 100).label(
                 "last_message_preview"
             ),
@@ -105,6 +106,7 @@ async def search_conversations(
             "contact_id": row.contact_id,
             "contact_name": row.contact_name,
             "status": row.status,
+            "unread_count": row.unread_count,
             "last_message_preview": row.last_message_preview,
             "last_message_at": row.last_message_at,
             "created_at": row.created_at,
@@ -139,6 +141,7 @@ async def get_conversation(
             Conversation.contact_id,
             Contact.name.label("contact_name"),
             Conversation.status,
+            Conversation.unread_count,
             func.substring(subquery_last_msg.c.last_content, 1, 100).label(
                 "last_message_preview"
             ),
@@ -168,6 +171,7 @@ async def get_conversation(
         "contact_id": row.contact_id,
         "contact_name": row.contact_name,
         "status": row.status,
+        "unread_count": row.unread_count,
         "last_message_preview": row.last_message_preview,
         "last_message_at": row.last_message_at,
         "created_at": row.created_at,
@@ -198,6 +202,25 @@ async def update_conversation_status(
     conversation.status = new_status
     await db.commit()
     await db.refresh(conversation)
+    return conversation
+
+
+async def mark_conversation_read(
+    db: AsyncSession, conversation_id: uuid.UUID
+) -> Conversation | None:
+    """Resetea el contador de no leídos. Idempotente."""
+    result = await db.execute(
+        select(Conversation).where(Conversation.id == conversation_id)
+    )
+    conversation = result.scalar_one_or_none()
+
+    if conversation is None:
+        return None
+
+    if conversation.unread_count != 0:
+        conversation.unread_count = 0
+        await db.commit()
+        await db.refresh(conversation)
     return conversation
 
 

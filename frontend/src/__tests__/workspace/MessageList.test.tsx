@@ -1,7 +1,14 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MessageList } from "@/components/workspace/MessageList";
+import { formatDateGroupLabel, getDateGroupKey } from "@/components/conversations/DateGroup";
 import type { Message } from "@/types";
+
+async function flushRaf() {
+  await act(async () => {
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  });
+}
 
 const messages: Message[] = [
   {
@@ -132,5 +139,160 @@ describe("MessageList", () => {
     const log = container.querySelector('[role="log"]');
     expect(log).toHaveAttribute("aria-live", "polite");
     expect(log).toHaveAttribute("aria-label", "Mensajes de la conversación");
+  });
+
+  it("groups messages by local date with expandable headers", async () => {
+    const multiDayMessages: Message[] = [
+      ...messages,
+      { ...messages[0], id: "m3", content: "Mensaje antiguo", created_at: "2026-07-26T10:00:00Z" },
+    ];
+    render(
+      <MessageList
+        messages={multiDayMessages}
+        loading={false}
+        hasMore={false}
+        onLoadMore={vi.fn()}
+      />
+    );
+
+    const firstDay = formatDateGroupLabel(
+      getDateGroupKey(new Date("2026-07-27T10:00:00Z"))
+    );
+    const secondDay = formatDateGroupLabel(
+      getDateGroupKey(new Date("2026-07-26T10:00:00Z"))
+    );
+    expect(screen.getByRole("button", { name: new RegExp(firstDay) })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: new RegExp(secondDay) })).toBeInTheDocument();
+
+    const firstGroupButton = screen.getByRole("button", { name: new RegExp(firstDay) });
+    expect(firstGroupButton).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Hola")).toBeInTheDocument();
+
+    await userEvent.click(firstGroupButton);
+    expect(screen.queryByText("Hola")).not.toBeInTheDocument();
+    expect(screen.getByText("Mensaje antiguo")).toBeInTheDocument();
+    expect(firstGroupButton).toHaveAttribute("aria-expanded", "false");
+    expect(firstGroupButton).toHaveTextContent("2 mensajes");
+  });
+
+  it("renders a flat list without group headers when search is active", () => {
+    render(
+      <MessageList
+        messages={messages}
+        loading={false}
+        hasMore={false}
+        onLoadMore={vi.fn()}
+        searchActive
+        searchQuery="Hola"
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: /Hoy/ })).not.toBeInTheDocument();
+    expect(screen.getByText("Hola")).toBeInTheDocument();
+    expect(screen.getByText("Adiós")).toBeInTheDocument();
+  });
+
+  it("expands the group of the deep-linked message", async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const dayKey = getDateGroupKey(new Date("2026-07-27T10:00:00Z"));
+    const label = formatDateGroupLabel(dayKey);
+
+    const { rerender } = render(
+      <MessageList messages={messages} loading={false} hasMore={false} onLoadMore={vi.fn()} />
+    );
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(label) }));
+    expect(screen.queryByText("Hola")).not.toBeInTheDocument();
+
+    rerender(
+      <MessageList
+        messages={messages}
+        loading={false}
+        hasMore={false}
+        onLoadMore={vi.fn()}
+        scrollToMessageId="m1"
+      />
+    );
+
+    expect(screen.getByRole("button", { name: new RegExp(label) })).toHaveAttribute(
+      "aria-expanded",
+      "true"
+    );
+    expect(screen.getByText("Hola")).toBeInTheDocument();
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
+
+  it("reports near-bottom changes through onNearBottomChange", async () => {
+    const onNearBottomChange = vi.fn();
+    render(
+      <MessageList
+        messages={messages}
+        loading={false}
+        hasMore={false}
+        onLoadMore={vi.fn()}
+        onNearBottomChange={onNearBottomChange}
+      />
+    );
+
+    const container = document.querySelector('[role="log"]') as HTMLElement;
+    Object.defineProperty(container, "scrollTop", { value: 0, configurable: true });
+    Object.defineProperty(container, "clientHeight", { value: 600, configurable: true });
+    Object.defineProperty(container, "scrollHeight", { value: 2000, configurable: true });
+    fireEvent.scroll(container);
+    await flushRaf();
+
+    expect(onNearBottomChange).toHaveBeenCalledWith(false);
+  });
+
+  it("does not auto-scroll on new messages when scrolled away from the bottom", async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+
+    const { rerender } = render(
+      <MessageList messages={messages} loading={false} hasMore={false} onLoadMore={vi.fn()} />
+    );
+
+    const container = document.querySelector('[role="log"]') as HTMLElement;
+    Object.defineProperty(container, "scrollTop", { value: 0, configurable: true });
+    Object.defineProperty(container, "clientHeight", { value: 600, configurable: true });
+    Object.defineProperty(container, "scrollHeight", { value: 2000, configurable: true });
+    fireEvent.scroll(container);
+    await flushRaf();
+
+    const extra: Message[] = [
+      ...messages,
+      { ...messages[0], id: "m9", created_at: "2026-07-27T11:00:00Z" },
+    ];
+    rerender(
+      <MessageList messages={extra} loading={false} hasMore={false} onLoadMore={vi.fn()} />
+    );
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("auto-scrolls on new messages when near the bottom", async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+
+    const { rerender } = render(
+      <MessageList messages={messages} loading={false} hasMore={false} onLoadMore={vi.fn()} />
+    );
+
+    const container = document.querySelector('[role="log"]') as HTMLElement;
+    Object.defineProperty(container, "scrollTop", { value: 1500, configurable: true });
+    Object.defineProperty(container, "clientHeight", { value: 600, configurable: true });
+    Object.defineProperty(container, "scrollHeight", { value: 2000, configurable: true });
+    fireEvent.scroll(container);
+    await flushRaf();
+
+    const extra: Message[] = [
+      ...messages,
+      { ...messages[0], id: "m9", created_at: "2026-07-27T11:00:00Z" },
+    ];
+    rerender(
+      <MessageList messages={extra} loading={false} hasMore={false} onLoadMore={vi.fn()} />
+    );
+
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
   });
 });

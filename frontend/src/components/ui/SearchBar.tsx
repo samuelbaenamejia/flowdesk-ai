@@ -8,6 +8,7 @@ interface SearchBarProps
   ariaLabel: string;
   clearLabel?: string;
   showShortcutHint?: boolean;
+  shortcutHint?: string;
 }
 
 export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
@@ -18,6 +19,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
       ariaLabel,
       clearLabel = "Limpiar búsqueda",
       showShortcutHint = false,
+      shortcutHint = "/",
       className = "",
       onKeyDown,
       ...props
@@ -61,7 +63,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
           </button>
         ) : showShortcutHint ? (
           <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-gray-300 px-1.5 py-0.5 text-[10px] font-medium text-gray-400 md:inline dark:border-gray-600 dark:text-gray-500">
-            /
+            {shortcutHint}
           </kbd>
         ) : null}
       </div>

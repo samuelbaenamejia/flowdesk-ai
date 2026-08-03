@@ -1,13 +1,23 @@
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
-import { useConversation, useMessages } from "@/hooks";
+import { useChatShortcuts, useConversation, useMessages } from "@/hooks";
+import { markConversationRead } from "@/lib/api";
 import { ConversationHeader } from "@/components/workspace/ConversationHeader";
 import { MessageFilters } from "@/components/workspace/MessageFilters";
 import { MessageList } from "@/components/workspace/MessageList";
 import { Composer } from "@/components/workspace/Composer";
+import { FloatingScrollButton } from "@/components/conversations/FloatingScrollButton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { MessageSquare } from "lucide-react";
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
 
 export default function ConversationDetailPage() {
   const router = useRouter();
@@ -29,6 +39,7 @@ export default function ConversationDetailPage() {
     messages,
     loading: messagesLoading,
     error: messagesError,
+    total,
     search,
     directionFilter,
     statusFilter,
@@ -50,6 +61,63 @@ export default function ConversationDetailPage() {
     search || directionFilter || statusFilter || dateFrom || dateTo
   );
 
+  const { searchOpen, setSearchOpen, searchInputRef } = useChatShortcuts(hasActiveFilters);
+  const clearFiltersRef = useRef(() => {});
+  const messageListRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLengthRef = useRef(messages.length);
+  const [nearBottom, setNearBottom] = useState(true);
+  const [newMessagesCount, setNewMessagesCount] = useState(0);
+
+  useEffect(() => {
+    if (!conversationId) return;
+    markConversationRead(conversationId).catch(() => {});
+  }, [conversationId]);
+
+  useEffect(() => {
+    const prevLength = prevMessagesLengthRef.current;
+    prevMessagesLengthRef.current = messages.length;
+
+    if (nearBottom) {
+      if (newMessagesCount !== 0) {
+        setNewMessagesCount(0);
+      }
+      return;
+    }
+
+    if (messages.length > prevLength) {
+      const incomingNew = messages
+        .slice(prevLength)
+        .filter((msg) => msg.direction === "incoming").length;
+      if (incomingNew > 0) {
+        setNewMessagesCount((count) => count + incomingNew);
+      }
+    }
+  }, [messages.length, nearBottom, newMessagesCount]);
+
+  useEffect(() => {
+    if (hasActiveFilters) {
+      setNewMessagesCount(0);
+    }
+  }, [hasActiveFilters]);
+
+  function handleNearBottomChange(isNearBottom: boolean) {
+    setNearBottom(isNearBottom);
+    if (isNearBottom) {
+      setNewMessagesCount(0);
+    }
+  }
+
+  function handleScrollToBottom() {
+    const container = messageListRef.current;
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+      });
+    }
+    setNewMessagesCount(0);
+  }
+
   function handleBack() {
     router.push("/conversations");
   }
@@ -60,6 +128,20 @@ export default function ConversationDetailPage() {
     setStatusFilter("");
     setDateFrom(null);
     setDateTo(null);
+    setSearchOpen(false);
+  }
+
+  clearFiltersRef.current = handleClearFilters;
+
+  useEffect(() => {
+    if (!searchOpen) {
+      clearFiltersRef.current();
+    }
+  }, [searchOpen]);
+
+  function handleSearchChange(value: string) {
+    setSearch(value);
+    setSearchOpen(Boolean(value));
   }
 
   if (conversationLoading) {
@@ -135,23 +217,35 @@ export default function ConversationDetailPage() {
         statusFilter={statusFilter}
         dateFrom={dateFrom}
         dateTo={dateTo}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         onDirectionChange={setDirectionFilter}
         onStatusChange={setStatusFilter}
         onDateFromChange={setDateFrom}
         onDateToChange={setDateTo}
         onClear={handleClearFilters}
+        resultCount={messages.length}
+        totalResults={total}
+        searchInputRef={searchInputRef}
       />
 
-      <MessageList
-        messages={messages}
-        loading={messagesLoading}
-        hasMore={hasMore}
-        onLoadMore={loadMore}
-        searchActive={hasActiveFilters}
-        searchQuery={search}
-        scrollToMessageId={scrollToMessageId}
-      />
+      <div className="relative min-h-0 flex-1">
+        <MessageList
+          ref={messageListRef}
+          messages={messages}
+          loading={messagesLoading}
+          hasMore={hasMore}
+          onLoadMore={loadMore}
+          searchActive={hasActiveFilters}
+          searchQuery={search}
+          scrollToMessageId={scrollToMessageId}
+          onNearBottomChange={handleNearBottomChange}
+        />
+        <FloatingScrollButton
+          visible={!nearBottom && !hasActiveFilters}
+          count={newMessagesCount}
+          onClick={handleScrollToBottom}
+        />
+      </div>
 
       {showComposer && (
         <Composer

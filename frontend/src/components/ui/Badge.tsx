@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type HTMLAttributes, type ReactNode } from "react";
 
 const variants = {
   default: "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300",
@@ -8,14 +8,15 @@ const variants = {
   error: "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400",
 };
 
-interface BadgeProps {
+interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: keyof typeof variants;
   children: ReactNode;
 }
 
-export function Badge({ variant = "default", children }: BadgeProps) {
+export function Badge({ variant = "default", children, ...rest }: BadgeProps) {
   return (
     <span
+      {...rest}
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${variants[variant]}`}
     >
       {children}

@@ -15,6 +15,7 @@ class ConversationResponse(BaseModel):
     contact_id: uuid.UUID
     contact_name: str
     status: str
+    unread_count: int
     last_message_preview: str | None
     last_message_at: datetime | None
     created_at: datetime

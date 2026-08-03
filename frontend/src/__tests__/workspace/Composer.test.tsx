@@ -57,6 +57,30 @@ describe("Composer", () => {
     expect(onSend).not.toHaveBeenCalled();
   });
 
+  it("calls onSend with Ctrl+Enter", async () => {
+    const onSend = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<Composer onSend={onSend} disabled={false} sending={false} error={null} />);
+
+    const textarea = screen.getByPlaceholderText("Escribe un mensaje...");
+    await user.type(textarea, "Mensaje por atajo");
+    await user.keyboard("{Control>}{Enter}{/Control}");
+
+    expect(onSend).toHaveBeenCalledWith("Mensaje por atajo");
+  });
+
+  it("calls onSend with Cmd+Enter", async () => {
+    const onSend = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<Composer onSend={onSend} disabled={false} sending={false} error={null} />);
+
+    const textarea = screen.getByPlaceholderText("Escribe un mensaje...");
+    await user.type(textarea, "Mensaje mac");
+    await user.keyboard("{Meta>}{Enter}{/Meta}");
+
+    expect(onSend).toHaveBeenCalledWith("Mensaje mac");
+  });
+
   it("shows error message when error prop is not null", () => {
     render(
       <Composer onSend={vi.fn()} disabled={false} sending={false} error="Error de envío" />

@@ -85,4 +85,51 @@ describe("MessageBubble", () => {
 
     expect(screen.queryByText("sent")).not.toBeInTheDocument();
   });
+
+  it("wraps matching terms in mark, case-insensitive", () => {
+    const message = {
+      ...inboundMessage,
+      content: "El PEDIDO llegó mañana. Mi pedido ya viene.",
+    };
+    const { container } = render(<MessageBubble message={message} highlightTerm="pedido" />);
+
+    const marks = container.querySelectorAll("mark");
+    expect(marks.length).toBe(2);
+    expect(marks[0].textContent).toBe("PEDIDO");
+    expect(marks[1].textContent).toBe("pedido");
+    expect(container.querySelector("p")?.textContent).toBe(
+      "El PEDIDO llegó mañana. Mi pedido ya viene."
+    );
+  });
+
+  it("escapes regex special characters in the search term", () => {
+    const message = {
+      ...inboundMessage,
+      content: "¿Costo total? (incluye IVA)",
+    };
+    const { container } = render(
+      <MessageBubble message={message} highlightTerm="(incluye" />
+    );
+
+    const marks = container.querySelectorAll("mark");
+    expect(marks.length).toBe(1);
+    expect(marks[0].textContent).toBe("(incluye");
+  });
+
+  it("renders plain text without marks when no term is provided", () => {
+    const { container } = render(<MessageBubble message={inboundMessage} />);
+
+    expect(container.querySelectorAll("mark").length).toBe(0);
+    expect(screen.getByText("Hola, ¿cómo estás?")).toBeInTheDocument();
+  });
+
+  it("does not use dangerouslySetInnerHTML for highlighting", () => {
+    const message = { ...inboundMessage, content: "Hola mundo" };
+    const { container } = render(
+      <MessageBubble message={message} highlightTerm="mundo" />
+    );
+
+    expect(container.innerHTML).not.toMatch(/dangerouslySetInnerHTML|dangerouslysetinnerhtml/i);
+    expect(container.querySelector("mark")?.textContent).toBe("mundo");
+  });
 });

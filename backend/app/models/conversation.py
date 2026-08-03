@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Uuid, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -17,6 +17,9 @@ class Conversation(Base):
         Uuid, ForeignKey("contacts.id"), nullable=False
     )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active")
+    unread_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     last_message_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

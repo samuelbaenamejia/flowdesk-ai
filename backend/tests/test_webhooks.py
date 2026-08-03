@@ -249,6 +249,7 @@ class TestReceiveMessage:
         conversation = result.scalar_one_or_none()
         assert conversation is not None
         assert conversation.status == "active"
+        assert conversation.unread_count == 1
 
     async def test_receive_reuses_existing_active_conversation(
         self,
@@ -278,6 +279,41 @@ class TestReceiveMessage:
         conversations = result.scalars().all()
         assert len(conversations) == 1
         assert conversations[0].id == test_conversation.id
+        assert conversations[0].unread_count == 1
+
+    async def test_receive_two_messages_accumulate_unread(
+        self,
+        client: AsyncClient,
+        settings_phone,
+        test_contact,
+        test_conversation,
+        mock_groq,
+        mock_whatsapp,
+        db_session,
+    ):
+        from sqlalchemy import select
+
+        from app.models.conversation import Conversation
+
+        first = await client.post(
+            "/api/v1/webhooks/whatsapp",
+            json=_text_payload(wa_msg_id="acc_msg_001"),
+        )
+        assert first.status_code == 200
+
+        second = await client.post(
+            "/api/v1/webhooks/whatsapp",
+            json=_text_payload(wa_msg_id="acc_msg_002"),
+        )
+        assert second.status_code == 200
+
+        result = await db_session.execute(
+            select(Conversation).where(
+                Conversation.contact_id == test_contact.id
+            )
+        )
+        conversation = result.scalar_one()
+        assert conversation.unread_count == 2
 
     async def test_receive_human_takeover_does_not_reply(
         self,

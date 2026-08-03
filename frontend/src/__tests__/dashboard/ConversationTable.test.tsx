@@ -258,4 +258,48 @@ describe("ConversationTable", () => {
     const lastCell = cells[cells.length - 1];
     expect(lastCell.textContent).toBe("");
   });
+
+  it("shows unread badge and dot when unread_count is greater than zero", () => {
+    const withUnread = { ...mockConversations[0], unread_count: 3 };
+    const { container } = render(
+      <ConversationTable
+        conversations={[withUnread]}
+        statusFilter=""
+        loading={false}
+        onSelectConversation={() => {}}
+      />
+    );
+    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(
+      container.querySelector('[aria-label="3 mensajes no leídos"]')
+    ).not.toBeNull();
+    expect(container.querySelector('[aria-hidden="true"]')).not.toBeNull();
+  });
+
+  it("caps the unread badge at 99+", () => {
+    const withUnread = { ...mockConversations[0], unread_count: 150 };
+    render(
+      <ConversationTable
+        conversations={[withUnread]}
+        statusFilter=""
+        loading={false}
+        onSelectConversation={() => {}}
+      />
+    );
+    expect(screen.getByText("99+")).toBeInTheDocument();
+  });
+
+  it("does not render unread badge when unread_count is zero or missing", () => {
+    const { container } = render(
+      <ConversationTable
+        conversations={mockConversations}
+        statusFilter=""
+        loading={false}
+        onSelectConversation={() => {}}
+      />
+    );
+    expect(
+      container.querySelector('[aria-label*="mensajes no leídos"]')
+    ).toBeNull();
+  });
 });

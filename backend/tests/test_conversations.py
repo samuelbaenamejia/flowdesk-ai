@@ -24,6 +24,35 @@ class TestListConversations:
         response = await client.get("/api/v1/conversations")
         assert response.status_code == 401
 
+    async def test_list_conversations_includes_unread_count(
+        self, client, auth_headers, test_conversation, db_session
+    ):
+        test_conversation.unread_count = 3
+        await db_session.commit()
+
+        response = await client.get(
+            "/api/v1/conversations", headers=auth_headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        conv = next(
+            c for c in data["items"] if c["id"] == str(test_conversation.id)
+        )
+        assert conv["unread_count"] == 3
+
+    async def test_list_conversations_unread_count_defaults_to_zero(
+        self, client, auth_headers, test_conversation
+    ):
+        response = await client.get(
+            "/api/v1/conversations", headers=auth_headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        conv = next(
+            c for c in data["items"] if c["id"] == str(test_conversation.id)
+        )
+        assert conv["unread_count"] == 0
+
     async def test_list_conversations_filters_by_status(
         self, client, auth_headers, test_conversation, db_session
     ):
@@ -330,6 +359,7 @@ class TestGetConversation:
         data = response.json()
         assert data["id"] == str(TEST_CONVERSATION_ID)
         assert data["status"] == "active"
+        assert data["unread_count"] == 0
 
     async def test_get_conversation_not_found_returns_404(
         self, client, auth_headers
@@ -361,6 +391,7 @@ class TestUpdateConversation:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "human_takeover"
+        assert data["unread_count"] == 0
 
     async def test_update_conversation_invalid_status_returns_400(
         self, client, auth_headers

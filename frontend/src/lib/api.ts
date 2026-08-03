@@ -100,6 +100,38 @@ class ApiClient {
     throw new Error(body.detail || `Request failed: ${response.status}`);
   }
 
+  async requestVoid(
+    url: string,
+    options: RequestInit = {}
+  ): Promise<void> {
+    const headers = new Headers(options.headers);
+    if (this.accessToken) {
+      headers.set("Authorization", `Bearer ${this.accessToken}`);
+    }
+
+    const response = await fetch(url, { ...options, headers });
+
+    if (response.ok) {
+      return;
+    }
+
+    if (response.status === 401) {
+      const body = await response.json().catch(() => ({}));
+      const errorCode = response.headers.get("X-Auth-Error") || body.code;
+
+      if (errorCode === "token_expired") {
+        return this.handleExpiredToken(() =>
+          this.requestVoid(url, options)
+        );
+      }
+
+      throw new AuthError(body.detail || "Authentication failed");
+    }
+
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || `Request failed: ${response.status}`);
+  }
+
   private handleExpiredToken<T>(
     retryFn: () => Promise<T>
   ): Promise<T> {
@@ -396,6 +428,12 @@ export async function updateConversation(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status }),
   });
+}
+
+export async function markConversationRead(id: string): Promise<void> {
+  const url = `${API_URL}/api/v1/conversations/${id}/read`;
+
+  return apiClient.requestVoid(url, { method: "POST" });
 }
 
 export async function getContacts(

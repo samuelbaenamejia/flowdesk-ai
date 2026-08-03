@@ -26,7 +26,7 @@ export function Composer({ onSend, disabled, sending, error }: ComposerProps) {
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && (!e.shiftKey || e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSend();
     }

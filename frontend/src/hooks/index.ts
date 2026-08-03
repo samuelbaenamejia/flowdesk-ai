@@ -1,5 +1,6 @@
 export { useConversations } from "./useConversations";
 export { useConversation } from "./useConversation";
+export { useChatShortcuts } from "./useChatShortcuts";
 export { useContacts } from "./useContacts";
 export { useDashboard } from "./useDashboard";
 export { useGlobalSearch } from "./useGlobalSearch";

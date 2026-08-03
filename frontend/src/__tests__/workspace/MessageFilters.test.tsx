@@ -108,4 +108,31 @@ describe("MessageFilters", () => {
     render(<MessageFilters {...BASE_PROPS} />);
     expect(screen.queryByText(/activo/)).not.toBeInTheDocument();
   });
+
+  it("shows result counter when search is active", () => {
+    render(
+      <MessageFilters {...BASE_PROPS} search="pedido" resultCount={3} totalResults={10} />
+    );
+    expect(screen.getByText("3 de 10 resultados")).toBeInTheDocument();
+  });
+
+  it("hides result counter when search is empty", () => {
+    render(<MessageFilters {...BASE_PROPS} resultCount={3} totalResults={10} />);
+    expect(screen.queryByText(/resultados/)).not.toBeInTheDocument();
+  });
+
+  it("hides result counter when total is not available", () => {
+    render(<MessageFilters {...BASE_PROPS} search="pedido" resultCount={3} />);
+    expect(screen.queryByText(/resultados/)).not.toBeInTheDocument();
+  });
+
+  it("shows Ctrl+F shortcut hint when search is empty", () => {
+    render(<MessageFilters {...BASE_PROPS} />);
+    expect(screen.getByText("Ctrl+F")).toBeInTheDocument();
+  });
+
+  it("hides Ctrl+F shortcut hint while typing", () => {
+    render(<MessageFilters {...BASE_PROPS} search="pedido" />);
+    expect(screen.queryByText("Ctrl+F")).not.toBeInTheDocument();
+  });
 });

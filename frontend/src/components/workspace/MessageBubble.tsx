@@ -1,3 +1,4 @@
+import { type ReactNode } from "react";
 import { Message } from "@/types";
 import { formatTime } from "@/lib/formatTime";
 
@@ -8,12 +9,45 @@ const STATUS_TRANSLATIONS: Record<string, string> = {
   failed: "fallido",
 };
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function renderHighlightedContent(content: string, term: string): ReactNode {
+  if (!term) return content;
+  let regex: RegExp;
+  try {
+    regex = new RegExp(escapeRegExp(term), "gi");
+  } catch {
+    return content;
+  }
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  for (const match of content.matchAll(regex)) {
+    if (match.index === undefined) continue;
+    if (match.index > lastIndex) {
+      parts.push(content.slice(lastIndex, match.index));
+    }
+    parts.push(<mark key={`${match.index}-${match[0]}`}>{match[0]}</mark>);
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+  return parts.length > 0 ? parts : content;
+}
+
 interface MessageBubbleProps {
   message: Message;
   highlight?: boolean;
+  highlightTerm?: string;
 }
 
-export function MessageBubble({ message, highlight = false }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  highlight = false,
+  highlightTerm = "",
+}: MessageBubbleProps) {
   const isOutbound = message.direction === "outgoing";
   const isFailed = message.status === "failed";
   const ringClass = highlight
@@ -35,7 +69,7 @@ export function MessageBubble({ message, highlight = false }: MessageBubbleProps
         } ${ringClass}`}
       >
         <p className="whitespace-pre-wrap break-words text-sm">
-          {message.content}
+          {renderHighlightedContent(message.content, highlightTerm)}
         </p>
         <div
           className={`mt-1 flex items-center gap-2 text-xs ${

@@ -82,26 +82,44 @@ export function ConversationTable({
     return <EmptyState icon={Inbox} title={msg.title} description={msg.description} />;
   }
 
-  const rows = conversations.map((conv) => ({
-    contact: (
-      <span className="text-sm font-medium text-gray-900 dark:text-gray-50">{conv.contact_name}</span>
-    ),
-    status: (
-      <Badge variant={STATUS_BADGE[conv.status] ?? "default"}>
-        {conv.status === "human_takeover" ? "Takeover" : conv.status === "active" ? "Activa" : "Cerrada"}
-      </Badge>
-    ),
-    preview: (
-      <span className="max-w-xs truncate text-sm text-gray-500 dark:text-gray-400 hidden md:block">
-        {conv.last_message_preview || ""}
-      </span>
-    ),
-    time: (
-      <span className="whitespace-nowrap text-sm text-gray-400 dark:text-gray-500 hidden md:block">
-        {formatRelativeTime(conv.last_message_at)}
-      </span>
-    ),
-  }));
+  const rows = conversations.map((conv) => {
+    const unreadCount = conv.unread_count ?? 0;
+    return {
+      contact: (
+        <span className="flex items-center gap-2">
+          {unreadCount > 0 && (
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500" aria-hidden="true" />
+          )}
+          <span className="text-sm font-medium text-gray-900 dark:text-gray-50">
+            {conv.contact_name}
+          </span>
+          {unreadCount > 0 && (
+            <Badge
+              variant="info"
+              aria-label={`${unreadCount} mensajes no leídos`}
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </Badge>
+          )}
+        </span>
+      ),
+      status: (
+        <Badge variant={STATUS_BADGE[conv.status] ?? "default"}>
+          {conv.status === "human_takeover" ? "Takeover" : conv.status === "active" ? "Activa" : "Cerrada"}
+        </Badge>
+      ),
+      preview: (
+        <span className="max-w-xs truncate text-sm text-gray-500 dark:text-gray-400 hidden md:block">
+          {conv.last_message_preview || ""}
+        </span>
+      ),
+      time: (
+        <span className="whitespace-nowrap text-sm text-gray-400 dark:text-gray-500 hidden md:block">
+          {formatRelativeTime(conv.last_message_at)}
+        </span>
+      ),
+    };
+  });
 
   return (
     <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">

@@ -12,6 +12,7 @@ from app.schemas.conversation import (
 )
 from app.services.conversation_service import (
     get_contact_name,
+    mark_conversation_read,
     search_conversations,
     update_conversation_status,
 )
@@ -63,6 +64,22 @@ async def get_conversation(
     return result
 
 
+@router.post(
+    "/conversations/{id}/read", status_code=status.HTTP_204_NO_CONTENT
+)
+async def mark_read(
+    id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(get_current_user),
+) -> None:
+    conversation = await mark_conversation_read(db, id)
+    if conversation is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Conversation with id '{id}' not found",
+        )
+
+
 @router.patch("/conversations/{id}", response_model=ConversationResponse)
 async def update_conversation(
     id: uuid.UUID,
@@ -79,6 +96,7 @@ async def update_conversation(
         "contact_id": conversation.contact_id,
         "contact_name": contact_name,
         "status": conversation.status,
+        "unread_count": conversation.unread_count,
         "last_message_preview": None,
         "last_message_at": conversation.last_message_at,
         "created_at": conversation.created_at,

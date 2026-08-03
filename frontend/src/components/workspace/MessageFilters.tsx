@@ -1,3 +1,4 @@
+import { type RefObject } from "react";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -31,6 +32,9 @@ interface MessageFiltersProps {
   onDateFromChange: (value: string | null) => void;
   onDateToChange: (value: string | null) => void;
   onClear: () => void;
+  resultCount?: number;
+  totalResults?: number;
+  searchInputRef?: RefObject<HTMLInputElement>;
 }
 
 export function MessageFilters({
@@ -45,6 +49,9 @@ export function MessageFilters({
   onDateFromChange,
   onDateToChange,
   onClear,
+  resultCount = 0,
+  totalResults,
+  searchInputRef,
 }: MessageFiltersProps) {
   const activeCount = [search, directionFilter, statusFilter, dateFrom, dateTo].filter(
     Boolean
@@ -52,13 +59,26 @@ export function MessageFilters({
 
   return (
     <div className="flex flex-col gap-3 border-b border-gray-200 bg-white px-4 py-3 lg:flex-row lg:items-center dark:border-gray-700 dark:bg-gray-800">
-      <SearchBar
-        value={search}
-        onChange={onSearchChange}
-        ariaLabel="Buscar en mensajes"
-        placeholder="Buscar en mensajes..."
-        className="lg:flex-1 lg:max-w-sm"
-      />
+      <div className="flex items-center gap-3 lg:flex-1 lg:max-w-sm">
+        <SearchBar
+          ref={searchInputRef}
+          value={search}
+          onChange={onSearchChange}
+          ariaLabel="Buscar en mensajes"
+          placeholder="Buscar en mensajes..."
+          className="flex-1"
+          showShortcutHint={!search}
+          shortcutHint="Ctrl+F"
+        />
+        {search && totalResults !== undefined && (
+          <span
+            aria-live="polite"
+            className="shrink-0 text-sm text-gray-600 dark:text-gray-400"
+          >
+            {resultCount} de {totalResults} resultados
+          </span>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center gap-2 lg:gap-3">
         <div className="flex items-center gap-2">

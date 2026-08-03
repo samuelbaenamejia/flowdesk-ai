@@ -173,6 +173,7 @@ async def _process_message(message, contacts, db: AsyncSession) -> None:
     db.add(msg)
 
     conversation.last_message_at = datetime.now(UTC)
+    conversation.unread_count = conversation.unread_count + 1
 
     logger.info(
         "webhook.message: µÂêµü»µîüõ╣àÕîûconversation_id=%s wa_message_id=%s",

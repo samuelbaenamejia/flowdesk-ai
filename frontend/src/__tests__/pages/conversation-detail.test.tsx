@@ -1,6 +1,8 @@
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRouter } from "next/router";
+import { vi } from "vitest";
+import type { Mock } from "vitest";
 import { useConversation, useMessages } from "@/hooks";
 import { markConversationRead } from "@/lib/api";
 import ConversationDetailPage from "@/pages/conversations/[id]";
@@ -53,6 +55,7 @@ function createMessagesMock(overrides: Record<string, unknown> = {}) {
   return {
     messages: [],
     total: 0,
+    offset: 0,
     loading: false,
     error: null,
     search: "",
@@ -70,6 +73,7 @@ function createMessagesMock(overrides: Record<string, unknown> = {}) {
     sendMessage: vi.fn(),
     sending: false,
     sendError: null,
+    filters: { q: "", direction: "", status: "", date_from: null, date_to: null },
     ...overrides,
   };
 }
@@ -77,7 +81,7 @@ function createMessagesMock(overrides: Record<string, unknown> = {}) {
 describe("ConversationDetailPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (useRouter as vi.Mock).mockReturnValue({ query: { id: "1" }, push: vi.fn() });
+    (useRouter as Mock).mockReturnValue({ query: { id: "1" }, push: vi.fn() });
   });
 
   it("renders header, message filters and empty message list", () => {
@@ -168,7 +172,7 @@ describe("ConversationDetailPage", () => {
         ],
       })
     );
-    (useRouter as vi.Mock).mockReturnValue({ query: { id: "1", msg: "m5" }, push: vi.fn() });
+    (useRouter as Mock).mockReturnValue({ query: { id: "1", msg: "m5" }, push: vi.fn() });
     render(<ConversationDetailPage />);
     expect(scrollIntoView).toHaveBeenCalled();
     const target = document.querySelector('[data-message-id="m5"]');

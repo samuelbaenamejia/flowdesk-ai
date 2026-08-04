@@ -220,7 +220,7 @@ class ApiClient {
 
     if (!response.ok) {
       const body = await response.json().catch(() => null);
-      throw new Error(body?.detail || "Error al iniciar sesión");
+      throw new Error(body?.detail || "Error al iniciar sesiÃ³n");
     }
 
     const data: TokenResponse = await response.json();
@@ -478,13 +478,13 @@ export async function updateContact(
 }
 
 export async function deleteContact(id: string): Promise<void> {
-  await apiClient.request<void>(`${API_URL}/api/v1/contacts/${id}`, {
+  await apiClient.requestVoid(`${API_URL}/api/v1/contacts/${id}`, {
     method: "DELETE",
   });
 }
 
 export async function hardDeleteContact(id: string): Promise<void> {
-  await apiClient.request<void>(`${API_URL}/api/v1/contacts/${id}/hard`, {
+  await apiClient.requestVoid(`${API_URL}/api/v1/contacts/${id}/hard`, {
     method: "DELETE",
   });
 }
@@ -502,7 +502,7 @@ export async function createTag(payload: TagCreatePayload): Promise<Tag> {
 }
 
 export async function deleteTag(id: string): Promise<void> {
-  await apiClient.request<void>(`${API_URL}/api/v1/tags/${id}`, {
+  await apiClient.requestVoid(`${API_URL}/api/v1/tags/${id}`, {
     method: "DELETE",
   });
 }
@@ -511,7 +511,7 @@ export async function assignTag(
   contactId: string,
   tagId: string
 ): Promise<void> {
-  await apiClient.request<void>(
+  await apiClient.requestVoid(
     `${API_URL}/api/v1/contacts/${contactId}/tags`,
     {
       method: "POST",
@@ -525,7 +525,7 @@ export async function removeTag(
   contactId: string,
   tagId: string
 ): Promise<void> {
-  await apiClient.request<void>(
+  await apiClient.requestVoid(
     `${API_URL}/api/v1/contacts/${contactId}/tags/${tagId}`,
     { method: "DELETE" }
   );
@@ -548,7 +548,7 @@ export async function updateProfile(
 export async function changePassword(
   payload: ChangePasswordRequest
 ): Promise<void> {
-  await apiClient.request<void>(`${API_URL}/api/v1/auth/change-password`, {
+  await apiClient.requestVoid(`${API_URL}/api/v1/auth/change-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

@@ -99,7 +99,7 @@ describe("useConversation", () => {
   });
 
   it("toggleStatus does nothing if conversation is closed", async () => {
-    const closedConv = { ...mockConversation, status: "closed" };
+    const closedConv: Conversation = { ...mockConversation, status: "closed" };
     getConversationMock.mockResolvedValue(closedConv);
     const { result } = renderHook(() => useConversation("1"));
 

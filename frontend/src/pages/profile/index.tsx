@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import Head from "next/head";
 import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/contexts/ToastContext";
 import { ProfileForm } from "@/components/profile/ProfileForm";
@@ -58,6 +59,9 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
+      <Head>
+        <title>Perfil | FlowDesk</title>
+      </Head>
       <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <ProfileForm
           profile={profile}

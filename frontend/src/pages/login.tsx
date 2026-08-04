@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import Head from "next/head";
 import { useRouter } from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/Button";
@@ -29,6 +30,9 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <Head>
+        <title>Iniciar sesión | FlowDesk</title>
+      </Head>
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-sm rounded-lg border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:shadow-none"

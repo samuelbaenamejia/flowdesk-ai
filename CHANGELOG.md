@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.15.0 (2026-08-03) — F6G: Final Audit, Type Hygiene & Polish
+
+### PR F6G.1 — Backend bug fixes
+- `app/api/deps.py`: claim `sub` con UUID malformado devuelve `401 "Token inválido"` (antes 500)
+- `app/api/v1/webhooks.py`: 9 strings de log corruptos (mojibake) reescritos en español
+
+### PR F6G.2 — Frontend polish
+- `src/lib/api.ts`: operaciones sin cuerpo (`deleteContact`, `hardDeleteContact`, `deleteTag`, `assignTag`, `removeTag`, `changePassword`) pasan a `requestVoid` (evita parsear respuestas 204)
+- Título por página (`next/head`) en login, dashboard, conversaciones, detalle, contactos, perfil y búsqueda + meta description
+- Confirmación destructiva antes de borrar un contacto
+- `aria-label` en búsqueda de contactos y creación de tags
+
+### PR F6G.3 — Type hygiene y gate de build
+- `tsconfig.json`: `types: ["vitest/globals"]` — `tsc --noEmit` pasa con 0 errores (antes 1196)
+- Tests: imports explícitos de `vi`/`Mock`, mocks completos (`filters`, `offset`), props de `Sidebar`, tipado de `status`
+- Lint: escapar comillas en `SearchResultsDropdown`; `<title>` de `_document` movido a nivel de página (regla `@next/next/no-title-in-document-head`)
+- `.gitignore`: `.pytest_cache/`
+
+### Verificación
+- Backend: 164/164 pytest · Frontend: 312/312 vitest (35 files) · **tsc 0 errores** · **npm run build OK** · `git diff --check` limpio
+
 ## v0.14.0 (2026-08-03) — F6F: Unread & Read Status
 
 ### PR 6F.1 — Backend read/unread

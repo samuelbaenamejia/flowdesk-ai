@@ -4,6 +4,7 @@ export default function Document() {
   return (
     <Html>
       <Head>
+        <meta name="description" content="FlowDesk-AI — Panel de gestión de conversaciones" />
         <script
           dangerouslySetInnerHTML={{
             __html: `

@@ -1,5 +1,7 @@
 import { render } from "@testing-library/react";
 import { useRouter } from "next/router";
+import { vi } from "vitest";
+import type { Mock } from "vitest";
 import HomePage from "@/pages/index";
 
 vi.mock("next/router", () => ({
@@ -9,7 +11,7 @@ vi.mock("next/router", () => ({
 describe("HomePage", () => {
   it("redirects to the dashboard on mount", () => {
     const replace = vi.fn();
-    (useRouter as vi.Mock).mockReturnValue({ replace });
+    (useRouter as Mock).mockReturnValue({ replace });
     render(<HomePage />);
     expect(replace).toHaveBeenCalledWith("/dashboard");
   });

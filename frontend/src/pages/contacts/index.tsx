@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import Head from "next/head";
 import { useRouter } from "next/router";
 import { useContacts } from "@/hooks/useContacts";
 import { useToast } from "@/contexts/ToastContext";
@@ -7,6 +8,7 @@ import { ContactForm } from "@/components/contacts/ContactForm";
 import { TagManager } from "@/components/contacts/TagManager";
 import { Pagination } from "@/components/dashboard/Pagination";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { Search, Plus } from "lucide-react";
 import {
@@ -42,6 +44,8 @@ export default function ContactsPage() {
   const [saving, setSaving] = useState(false);
   const [tagManagerOpen, setTagManagerOpen] = useState(false);
   const [tagManagerContact, setTagManagerContact] = useState<Contact | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Contact | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const openCreate = useCallback(() => {
     setEditingContact(null);
@@ -79,12 +83,16 @@ export default function ContactsPage() {
   }, [editingContact, addToast, retry]);
 
   const handleDelete = useCallback(async (contact: Contact) => {
+    setDeleting(true);
     try {
       await deleteContact(contact.id);
       addToast("success", "Contacto eliminado");
       retry();
     } catch (err) {
       addToast("error", err instanceof Error ? err.message : "Error al eliminar");
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
     }
   }, [addToast, retry]);
 
@@ -133,6 +141,9 @@ export default function ContactsPage() {
 
   return (
     <div className="space-y-4">
+      <Head>
+        <title>Contactos | FlowDesk</title>
+      </Head>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Contactos</h1>
         <Button onClick={openCreate} size="sm">
@@ -141,12 +152,13 @@ export default function ContactsPage() {
       </div>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
         <input
           type="text"
           value={searchValue}
           onChange={handleSearchChange}
           placeholder="Buscar contactos..."
+          aria-label="Buscar contactos"
           className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
         />
       </div>
@@ -157,7 +169,7 @@ export default function ContactsPage() {
         search={searchValue}
         tags={tags}
         onEdit={openEdit}
-        onDelete={handleDelete}
+        onDelete={setDeleteTarget}
         onManageTags={openTagManager}
       />
 
@@ -193,6 +205,17 @@ export default function ContactsPage() {
           onCreateTag={handleCreateTag}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={deleteTarget !== null}
+        title="Eliminar contacto"
+        message={`¿Eliminar a "${deleteTarget?.name}"? Esta acción no se puede deshacer.`}
+        variant="destructive"
+        confirmText="Eliminar"
+        loading={deleting}
+        onConfirm={() => deleteTarget && handleDelete(deleteTarget)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

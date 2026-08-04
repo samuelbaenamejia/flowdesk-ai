@@ -75,7 +75,9 @@ uv sync
 uv run alembic upgrade head
 ```
 
-Esto crea todas las tablas (User, Contact, Conversation, Message) en la base de datos configurada en `DATABASE_URL`.
+Esto crea todas las tablas (User, Contact, Conversation, Message) en la base de datos configurada en `DATABASE_URL`, y habilita Row-Level Security (RLS) en PostgreSQL para cada tabla.
+
+> **RLS:** La migración `b2c3d4e5f6a7` habilita RLS con default-deny en todas las tablas. El backend se conecta como `postgres` con `rolbypassrls = true` (verificado mediante SQL), por lo que PostgreSQL no evalúa políticas RLS para sus queries. La aplicación no se ve afectada. Las alertas de seguridad de Supabase ("Table publicly accessible") quedan resueltas.
 
 ---
 
@@ -121,9 +123,24 @@ Configurar Webhook en Meta Developer Dashboard:
 - **Callback URL:** `https://<ngrok-url>/api/v1/webhooks/whatsapp`
 - **Verify Token:** el mismo que `WHATSAPP_VERIFY_TOKEN`
 
-**Opción B — Túnel con Caddy (producción):**
+**Opción B — Caddy reverse proxy (producción):**
 
-Configurar Caddyfile con dominio real y apuntar al backend.
+Usar el Caddyfile incluido en `infra/`. Caddy se despliega como contenedor Docker:
+
+```bash
+# Configurar dominio en DNS apuntando al VPS
+# Editar infra/Caddyfile con el dominio real
+
+# Ejecutar Caddy como contenedor independiente:
+docker run -d --name caddy \
+  -p 80:80 -p 443:443 \
+  -v $PWD/infra/Caddyfile:/etc/caddy/Caddyfile \
+  -v caddy_data:/data \
+  caddy:2
+
+# TLS se configura automáticamente vía Let's Encrypt
+# Verificar: https://<dominio>/health
+```
 
 ---
 
@@ -198,7 +215,36 @@ bash infra/rollback.sh sha-abc1234 sha-def5678
 | Backend (FastAPI) | 8000 | `ghcr.io/flowdesk-ai/backend:latest` |
 | Frontend (Next.js) | 3000 | `ghcr.io/flowdesk-ai/frontend:latest` |
 | n8n | 5678 | `n8nio/n8n` (Docker Hub) |
+| Caddy | 80/443 | `caddy:2` (Docker Hub) |
+| Uptime Kuma | 3001 | `louislam/uptime-kuma:1` (Docker Hub) |
 | PostgreSQL | — | Supabase Cloud (externo) |
+
+### 8.5 Operaciones: Backups y Monitoreo
+
+Los backups se ejecutan automáticamente vía cron diario a las 02:00:
+
+```bash
+# Verificar estado del último backup
+tail /var/log/flowdesk-backup.log
+
+# Listar backups disponibles
+ls /var/backups/flowdesk/
+
+# Restaurar un backup (ver infra/scripts/restore.sh)
+bash infra/scripts/restore.sh 20260730
+```
+
+El monitoreo de servicios está disponible en:
+
+```bash
+# Uptime Kuma dashboard
+http://<vps-ip>:3001
+
+# Logs de Docker
+docker compose -f infra/docker-compose.yml logs -f
+```
+
+Retención: 7 días automática. Ver `infra/scripts/backup.sh` para detalles.
 
 ---
 

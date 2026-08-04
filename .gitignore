@@ -33,6 +33,7 @@ docker-compose.override.yml
 *.log
 *.pid
 *.tsbuildinfo
+.pytest_cache/
 
 # Coverage
 coverage/

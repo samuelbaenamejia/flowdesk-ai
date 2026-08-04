@@ -1,6 +1,8 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRouter } from "next/router";
+import { vi } from "vitest";
+import type { Mock } from "vitest";
 import { useGlobalSearch } from "@/hooks";
 import SearchPage from "@/pages/search/index";
 import type { GlobalSearchResponse, SearchMessageResult } from "@/types";
@@ -57,7 +59,7 @@ function createSearchMock(overrides: Record<string, unknown> = {}) {
 describe("SearchPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (useRouter as vi.Mock).mockReturnValue({ query: { q: "día" }, push: vi.fn() });
+    (useRouter as Mock).mockReturnValue({ query: { q: "día" }, push: vi.fn() });
     mockUseGlobalSearch.mockReturnValue(
       createSearchMock({ query: "día", results })
     );
@@ -81,7 +83,7 @@ describe("SearchPage", () => {
 
   it("navigates to a conversation when a conversation result is clicked", async () => {
     const push = vi.fn();
-    (useRouter as vi.Mock).mockReturnValue({ query: { q: "día" }, push });
+    (useRouter as Mock).mockReturnValue({ query: { q: "día" }, push });
     render(<SearchPage />);
     await userEvent.click(screen.getByText("Juan Pérez"));
     expect(push).toHaveBeenCalledWith("/conversations/c1");
@@ -89,7 +91,7 @@ describe("SearchPage", () => {
 
   it("navigates to the message deep link when a message result is clicked", async () => {
     const push = vi.fn();
-    (useRouter as vi.Mock).mockReturnValue({ query: { q: "día" }, push });
+    (useRouter as Mock).mockReturnValue({ query: { q: "día" }, push });
     render(<SearchPage />);
     await userEvent.click(screen.getByText("...¿qué día llega el pedido?"));
     expect(push).toHaveBeenCalledWith("/conversations/c1?msg=m1");
@@ -97,7 +99,7 @@ describe("SearchPage", () => {
 
   it("submits the form and navigates when the query changes", async () => {
     const push = vi.fn();
-    (useRouter as vi.Mock).mockReturnValue({ query: { q: "día" }, push });
+    (useRouter as Mock).mockReturnValue({ query: { q: "día" }, push });
     render(<SearchPage />);
     fireEvent.change(screen.getByLabelText("Buscar conversaciones y mensajes"), {
       target: { value: "pedido" },

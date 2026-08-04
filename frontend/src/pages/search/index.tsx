@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import Head from "next/head";
 import { useRouter } from "next/router";
 import { useGlobalSearch } from "@/hooks";
 import { SearchBar } from "@/components/ui/SearchBar";
@@ -127,6 +128,9 @@ export default function SearchPage() {
 
   return (
     <div>
+      <Head>
+        <title>Búsqueda | FlowDesk</title>
+      </Head>
       <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-50">
         Búsqueda global
       </h1>

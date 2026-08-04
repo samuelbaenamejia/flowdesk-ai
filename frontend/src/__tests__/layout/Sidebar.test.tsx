@@ -14,18 +14,18 @@ vi.mock("next/router", () => ({
 
 describe("Sidebar", () => {
   it("renders brand abbreviation", () => {
-    render(<Sidebar />);
+    render(<Sidebar isOpen onClose={() => {}} />);
     expect(screen.getByText("F")).toBeInTheDocument();
   });
 
   it("renders conversations icon link", () => {
-    render(<Sidebar />);
+    render(<Sidebar isOpen onClose={() => {}} />);
     const link = screen.getByTitle("Conversaciones");
     expect(link).toBeInTheDocument();
   });
 
   it("renders dashboard link first", () => {
-    render(<Sidebar />);
+    render(<Sidebar isOpen onClose={() => {}} />);
     const dashboard = screen.getByTitle("Dashboard");
     expect(dashboard).toBeInTheDocument();
     const links = screen.getAllByRole("link");
@@ -33,13 +33,13 @@ describe("Sidebar", () => {
   });
 
   it("highlights active route", () => {
-    render(<Sidebar />);
+    render(<Sidebar isOpen onClose={() => {}} />);
     const link = screen.getByTitle("Conversaciones");
     expect(link.className).toContain("bg-gray-100");
   });
 
   it("does not render Home", () => {
-    render(<Sidebar />);
+    render(<Sidebar isOpen onClose={() => {}} />);
     expect(screen.queryByTitle("Home")).not.toBeInTheDocument();
   });
 });

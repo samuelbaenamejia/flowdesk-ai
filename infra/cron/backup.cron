@@ -1,0 +1,15 @@
+# FlowDesk-AI daily backup
+# Installed via: crontab infra/cron/backup.cron
+#
+# Schedule:
+#   02:00 — Full backup (PostgreSQL + volumes + config)
+#
+# Retention is handled inside backup.sh (7 days)
+#
+# Environment variables must be loaded before the script runs.
+# The script sources PROJECT_DIR/.env for DATABASE_URL and others.
+#
+# NOTE: This is a user crontab format (no 6th user field).
+# Run 'crontab -e' as root to verify after install.
+
+0 2 * * * cd /root/flowdesk-ai && . ./backend/.env && bash infra/scripts/backup.sh >> /var/log/flowdesk-backup.log 2>&1

@@ -30,14 +30,14 @@ async def verify_webhook(
     hub_challenge: str = Query(alias="hub.challenge"),
 ) -> PlainTextResponse:
     if hub_mode != "subscribe":
-        logger.warning("webhook.verifyµïÆþ╗Ø: hub.mode=%s", hub_mode)
+        logger.warning("webhook.verify: hub.mode=%s", hub_mode)
         return PlainTextResponse(status_code=403, content="forbidden")
 
     if hub_verify_token != settings.whatsapp_verify_token:
-        logger.warning("webhook.verifyµïÆþ╗Ø: tokenõ©ìÕî╣Úàì")
+        logger.warning("webhook.verify: token no coincide")
         return PlainTextResponse(status_code=403, content="forbidden")
 
-    logger.info("webhook.verifyÚÇÜÞ┐ç")
+    logger.info("webhook.verify: verificación exitosa")
     return PlainTextResponse(content=hub_challenge)
 
 
@@ -49,17 +49,17 @@ async def receive_webhook(
     try:
         body = await request.json()
     except json.JSONDecodeError:
-        logger.warning("webhook.receive: JSONÞºúµ×ÉÕñ▒Þ┤Ñ")
+        logger.warning("webhook.receive: JSON inválido")
         return {"status": "ok"}
 
     try:
         payload = WebhookPayload(**body)
     except ValidationError:
-        logger.warning("webhook.receive: payloadþ╗ôµ×äµùáµòê")
+        logger.warning("webhook.receive: payload inválido")
         return {"status": "ok"}
 
     if payload.object != "whatsapp_business_account":
-        logger.info("webhook.receive: ÚØ×WhatsAppõ║ïõ╗Âobject=%s", payload.object)
+        logger.info("webhook.receive: objeto no WhatsApp object=%s", payload.object)
         return {"status": "ok"}
 
     for entry in payload.entry:
@@ -68,9 +68,9 @@ async def receive_webhook(
                 async with db.begin():
                     await _process_webhook_entry(change, db)
             except IntegrityError:
-                logger.warning("webhook.receive: wa_message_idÚçìÕñì")
+                logger.warning("webhook.receive: wa_message_id duplicado")
             except Exception:
-                logger.exception("webhook.receive: ÕñäþÉåÕ╝éÕ©©")
+                logger.exception("webhook.receive: error procesando")
 
     return {"status": "ok"}
 
@@ -79,12 +79,12 @@ async def _process_webhook_entry(change: WebhookChange, db: AsyncSession) -> Non
     value = change.value
 
     if value.metadata is None:
-        logger.warning("webhook.process: metadataõ©║þ®║")
+        logger.warning("webhook.process: metadata vacío")
         return
 
     if value.metadata.phone_number_id != settings.whatsapp_phone_number_id:
         logger.info(
-            "webhook.process: phone_number_idõ©ìÕî╣ÚàìµöÂÕê░=%sÚàìþ¢«=%s",
+            "webhook.process: phone_number_id no coincide recibido=%s configurado=%s",
             value.metadata.phone_number_id,
             settings.whatsapp_phone_number_id,
         )
@@ -124,7 +124,7 @@ async def _notify_n8n(
 
 async def _process_message(message, contacts, db: AsyncSession) -> None:
     if message.type != "text":
-        logger.info("webhook.message: õ©ìµö»µîüþÜäþ▒╗Õ×ïtype=%sÕ┐¢þòÑ", message.type)
+        logger.info("webhook.message: tipo no soportado type=%s ignorado", message.type)
         return
 
     contact_wa_id = message.from_
@@ -144,7 +144,7 @@ async def _process_message(message, contacts, db: AsyncSession) -> None:
         contact = Contact(wa_id=contact_wa_id, name=contact_name)
         db.add(contact)
         await db.flush()
-        logger.info("webhook.message: Þüöþ│╗õ║║ÕêøÕ╗║wa_id=%s", contact_wa_id)
+        logger.info("webhook.message: contacto creado wa_id=%s", contact_wa_id)
 
     result = await db.execute(
         select(Conversation).where(
@@ -158,9 +158,7 @@ async def _process_message(message, contacts, db: AsyncSession) -> None:
         conversation = Conversation(contact_id=contact.id, status="active")
         db.add(conversation)
         await db.flush()
-        logger.info(
-            "webhook.message: õ╝ÜÞ»ØÕêøÕ╗║contact_id=%s", contact.id
-        )
+        logger.info("webhook.message: conversación creada contact_id=%s", contact.id)
 
     msg = Message(
         conversation_id=conversation.id,
@@ -176,18 +174,18 @@ async def _process_message(message, contacts, db: AsyncSession) -> None:
     conversation.unread_count = conversation.unread_count + 1
 
     logger.info(
-        "webhook.message: µÂêµü»µîüõ╣àÕîûconversation_id=%s wa_message_id=%s",
+        "webhook.message: mensaje persistido conversation_id=%s wa_message_id=%s",
         conversation.id,
         message.id,
     )
 
-    # Notificar a n8n si est├í habilitado
+    # Notificar a n8n si está habilitado
     if settings.n8n_enabled and settings.n8n_webhook_url:
         asyncio.create_task(
             _notify_n8n(conversation.id, contact.wa_id, message.text.body)
         )
 
-    # Modo primary: saltar respuesta autom├ítica (n8n la orquesta)
+    # Modo primary: saltar respuesta automática (n8n la orquesta)
     if settings.n8n_enabled and settings.n8n_mode == "primary":
         logger.info(
             "webhook.message: modo primary, delegando a n8n "
@@ -196,7 +194,7 @@ async def _process_message(message, contacts, db: AsyncSession) -> None:
         )
         return
 
-    # Respuesta autom├ítica (disabled o mirror)
+    # Respuesta automática (disabled o mirror)
     try:
         from app.services.message_service import process_incoming_and_respond
 
@@ -218,13 +216,13 @@ async def _process_status(status, db: AsyncSession) -> None:
 
     if message is None:
         logger.info(
-            "webhook.status: µÂêµü»µ£¬µë¥Õê░wa_message_id=%sÕ┐¢þòÑ", status.id
+            "webhook.status: mensaje no encontrado wa_message_id=%s ignorado", status.id
         )
         return
 
     message.status = status.status
     logger.info(
-        "webhook.status: þèÂµÇüµø┤µû░wa_message_id=%sµû░þèÂµÇü=%s",
+        "webhook.status: estado actualizado wa_message_id=%s nuevo estado=%s",
         status.id,
         status.status,
     )

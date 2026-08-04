@@ -108,6 +108,7 @@ export function TagManager({
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
               placeholder="Nombre del tag"
+              aria-label="Nombre del nuevo tag"
               className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-50"
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleCreateTag(); } }}
             />

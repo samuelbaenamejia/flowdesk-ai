@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import Head from "next/head";
 import { useRouter } from "next/router";
 import { useChatShortcuts, useConversation, useMessages } from "@/hooks";
 import { markConversationRead } from "@/lib/api";
@@ -198,6 +199,9 @@ export default function ConversationDetailPage() {
 
   return (
     <div className="flex h-[calc(100dvh-8rem)] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+      <Head>
+        <title>Conversación | FlowDesk</title>
+      </Head>
       {toggleError && (
         <div className="border-b border-red-200 bg-red-50 px-6 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400" role="alert">
           {toggleError}

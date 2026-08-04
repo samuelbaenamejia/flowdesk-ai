@@ -1,6 +1,6 @@
 # SESSION_HANDOFF — FlowDesk-AI
 
-> Última actualización: 2026-07-28
+> Última actualización: 2026-07-30
 
 ---
 
@@ -42,8 +42,12 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 | — | F4A — Responsive Design | main (consolidated v0.4.0) |
 | — | F4B — Dark Mode | main (consolidated v0.4.0) |
 | — | F4C — Realtime (Smart Polling) | main (consolidated v0.4.0) |
+| — | F5A — CI/CD Pipeline | main (v0.5.0) |
+| — | F5B — Reverse Proxy (Caddy + TLS) | main (v0.7.0) |
+| — | F5C — Docker Hardening + RLS | main (v0.7.0) |
+| — | F5D — Monitoring, Backups & Observability | main (v0.7.0) |
 
-> **Nota:** PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo). F2, F3, F4A, F4B y F4C se mergearon directamente a main sin PR numerado (consolidados en v0.4.0).
+> **Nota:** PRs #5/#6 y #7/#8 son re-merges del mismo trabajo (artifacto del proceso de desarrollo). F2, F3, F4A, F4B y F4C se mergearon directamente a main sin PR numerado (consolidados en v0.4.0). F5A–F5D se consolidaron directamente a main (v0.5.0 y v0.7.0).
 
 ---
 
@@ -115,12 +119,16 @@ FlowDesk-AI es una plataforma de atención automática empresarial vía WhatsApp
 - **Inter font:** Cargada vía `next/font/google` con CSS variable.
 - **Tailwind:** `fontFamily.sans` configurado con Inter.
 
-### Infraestructura
+### Infraestructura (F5 — COMPLETADA)
 
-- Docker Compose (backend + frontend + n8n)
-- Supabase Cloud (PostgreSQL 17.6)
-- n8n (orquestación) — servicio en docker-compose, Internal API disponible, escalamiento automático con ESCALATION_KEYWORDS
-- Caddy (pendiente para dominios)
+- Docker Compose: backend, frontend, n8n, uptime-kuma. Caddy listo (Caddyfile) para deploy manual o integración futura
+- Supabase Cloud (PostgreSQL 17.6) con RLS habilitado en 4 tablas
+- Caddy reverse proxy con TLS automático (Let's Encrypt), routing para backend + n8n
+- n8n orquestación con Internal API, escalamiento automático vía ESCALATION_KEYWORDS
+- Uptime Kuma: monitoreo de salud de servicios
+- CI/CD: GitHub Actions (lint + test + build + deploy), rollback script
+- Backups automatizados: PostgreSQL (pg_dump custom), n8n volumes, workflows, config
+- Cron: backup diario 02:00 con retención de 7 días
 
 ---
 
@@ -194,29 +202,84 @@ uv run alembic revision --autogenerate -m "description"
 | Frontend | ErrorBoundary | Class component que captura errores React, muestra fallback UI con botón de recarga. |
 | Lint | Unused imports | 7 `F401` removidos de `tests/` backend vía `ruff check --fix`. |
 
-## F5A — CI/CD Pipeline (2026-07-28) — ✅ CERRADO
+## Épica F5 — Production Readiness (2026-07-30) — ✅ COMPLETADA
 
-| Archivo | Propósito |
-|---------|-----------|
-| `.github/workflows/ci.yml` | CI: lint + test + build en PR/push |
-| `.github/workflows/deploy.yml` | CD: build + push GHCR + SSH deploy en push a main |
-| `infra/docker-compose.prod.yml` | Override producción (imágenes GHCR) |
-| `infra/deploy.sh` | Script deploy: pull, migrations, restart, healthcheck |
-| `infra/rollback.sh` | Script rollback por tag de commit |
-| `backend/scripts/entrypoint.sh` | Entrypoint: migrations + uvicorn |
+Toda la épica F5 está cerrada en v0.7.0. Incluye:
 
-### Release Gate
-- **Score:** 98/100 — 6 hallazgos LOW (ninguno bloquea)
-- **Veredicto:** READY FOR F5B
+| Componente | Estado | Entregables |
+|------------|--------|-------------|
+| **F5A** — CI/CD | ✅ v0.5.0 | CI/CD GitHub Actions, deploy.sh, rollback.sh, docker-compose.prod.yml, entrypoint.sh |
+| **F5B** — Caddy + TLS | ✅ v0.7.0 | Caddyfile, TLS automático Let's Encrypt |
+| **F5C** — Docker Hardening | ✅ v0.7.0 | Resource limits, HEALTHCHECK, restart policies, non-root, cap_drop, log rotation |
+| **F5C.1** — RLS | ✅ v0.7.0 | RLS + default-deny en 4 tablas, FORCE RLS, migración Alembic |
+| **F5D** — Monitoring & Backups | ✅ v0.7.0 | Uptime Kuma, backup.sh, restore.sh, backup.cron, .env.example actualizado |
 
-### Setup post-merge (manual, una vez)
-- Configurar secrets en GitHub Actions: SSH_HOST, SSH_KEY, SSH_USER, DATABASE_URL, SECRET_KEY, etc.
-- Setup del VPS: docker, docker compose, clonar repositorio, crear `backend/.env` con secrets reales
+### Setup VPS (una vez, post-deploy)
 
-### Próximos pasos
-- **F5B**: Caddy reverse proxy con TLS ← Siguiente
-- **F5C**: Docker hardening (resource limits, network isolation)
-- **F5D**: Health & Operations (monitoring, backups)
+```bash
+# Configurar secrets en GitHub Actions:
+# SSH_HOST, SSH_USER, SSH_KEY, DATABASE_URL, SECRET_KEY,
+# INTERNAL_API_KEY, N8N_ENCRYPTION_KEY, WHATSAPP_*, GROQ_API_KEY
+
+# En el VPS:
+git clone https://github.com/samuelbaenamejia/flowdesk-ai.git ~/flowdesk-ai
+cp infra/.env.example backend/.env
+# Editar backend/.env con valores reales
+
+# El deploy automático via GitHub Actions ejecuta:
+#   docker compose -f infra/docker-compose.yml pull
+#   docker compose -f infra/docker-compose.yml up -d
+#   bash infra/scripts/backup.sh via cron (02:00 daily)
+
+# Verificar monitoreo:
+#   http://<vps-ip>:3001 — Uptime Kuma dashboard
+#   /var/backups/flowdesk/ — backups diarios (retención 7 días)
+#   /var/log/flowdesk-backup.log — log de backups
+```
+
+## Qué sigue (próxima épica)
+
+La infraestructura F5 está COMPLETADA. El proyecto está listo para comenzar desarrollo de funcionalidad:
+
+- **Backend:** Nuevos endpoints, lógica de negocio, integraciones
+- **Frontend:** Nuevas pantallas, componentes, features de usuario
+- **Base de datos:** Nuevos modelos, migraciones, consultas
+- **Testing:** Tests unitarios, de integración y E2E
+
+No hay infraestructura pendiente. Todo deploy continúa vía CI/CD existente.
+
+---
+
+## Épica F6 — Product Features (2026-08-03) — ✅ COMPLETADA (v0.14.0)
+
+| Componente | Estado | Entregables |
+|------------|--------|-------------|
+| **F6A** — Auth & Profile | ✅ v0.10.0 | Login/refresh/logout, perfil, cambio de contraseña |
+| **F6B** — Inbox (2 PRs) | ✅ v0.11.0–v0.13.0 | Conversaciones + filtros + paginación, búsqueda global, mensajes + filtros |
+| **F6C** — Dashboard KPIs | ✅ v0.14.0 | KPIs, mensajes por día, contactos top |
+| **F6D** — Docs & Decisión | ✅ v0.14.0 | DEPLOY, PROJECT_DECISIONS, ROADMAP actualizados |
+| **F6E** — Deploy | ✅ v0.14.0 | deploy.sh multi-servicio, Caddyfile, .env.example |
+| **F6F** — Critical Review | ✅ v0.14.0 | docs/F6F-DESIGN.md — brechas + plan de corrección |
+| **F6G** — Final Audit | ✅ Sin commit (en revisión) | Auditoría final: bugs, UX, a11y, dead code; Delta Report entregado |
+
+### F6G — Resumen de fixes (working tree, pendientes de commit)
+
+- **Backend:** `deps.py` — UUID malformado en `sub` devuelve 401 (antes 500); `webhooks.py` — 9 strings corruptos (mojibake chino) reescritos en español.
+- **Frontend:** `api.ts` — 6 funciones cambian a `requestVoid` (evita parsear 204 de DELETE/change-password); títulos por página (`_document.tsx` default + `<Head>` en 7 páginas); confirmación antes de borrar contacto; `aria-label` en búsqueda de contactos y creación de tags.
+
+### Suite completa (F6G)
+
+- Backend: pytest **164/164** ✅
+- Frontend: vitest **312/312** (35 archivos) ✅ · tsc **0 errores fuera de `.test.*`** (1196 pre-existentes en tests por globals de vitest) ✅ · `git diff --check` limpio ✅
+
+### Riesgos conocidos (fuera de alcance F6G, recomendaciones)
+
+- Sin rate-limit en `/auth/register` (solo login).
+- `CORS_ORIGINS=*` por defecto — restringir en producción vía `.env`.
+- Warning Pydantic `class Config` → `ConfigDict` (deprecado V2, migrar en F7).
+- Warnings `act(...)` en tests de hooks (uso de RTL sin act — cosmético).
+
+---
 
 ## Reglas permanentes
 

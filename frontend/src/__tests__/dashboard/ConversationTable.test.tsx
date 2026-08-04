@@ -205,7 +205,10 @@ describe("ConversationTable", () => {
   });
 
   it("uses default badge for unknown status", () => {
-    const unknown = { ...mockConversations[0], status: "pending" as const };
+    const unknown = {
+      ...mockConversations[0],
+      status: "pending" as unknown as Conversation["status"],
+    };
     render(
       <ConversationTable
         conversations={[unknown]}

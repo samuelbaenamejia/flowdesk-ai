@@ -85,3 +85,8 @@ docker compose -f infra/docker-compose.yml up --build
 | F4 — Responsive (F4A) + Dark Mode (F4B) + Realtime Smart Polling (F4C) | Completada |
 | Testing avanzado — TESTING_GUIDELINES.md | Completada |
 | Documentación final — DEPLOY.md, CHANGELOG.md | Completada |
+| F5A — CI/CD Pipeline (GitHub Actions, deploy, rollback) | Completada |
+| F5B — Reverse Proxy (Caddy + TLS automático Let's Encrypt) | Completada |
+| F5C — Docker Hardening (resource limits, healthchecks, non-root, cap_drop) | Completada |
+| F5C.1 — Row Level Security (RLS default-deny en 4 tablas) | Completada |
+| F5D — Monitoring & Backups (Uptime Kuma, backup.sh, restore.sh, cron) | Completada |

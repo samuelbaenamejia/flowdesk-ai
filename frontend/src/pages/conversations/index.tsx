@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import Head from "next/head";
 import { useRouter } from "next/router";
 import { useConversations } from "@/hooks/useConversations";
 import { ConversationTable } from "@/components/dashboard/ConversationTable";
@@ -55,6 +56,9 @@ export default function ConversationsPage() {
 
   return (
     <div>
+      <Head>
+        <title>Conversaciones | FlowDesk</title>
+      </Head>
       <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-50">Conversaciones</h2>
 
       <div aria-live="polite" aria-atomic="true" className="sr-only">

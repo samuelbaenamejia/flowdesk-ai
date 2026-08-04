@@ -339,7 +339,59 @@ Ver ARCHITECTURE_REVIEW.md para justificación detallada de cada cambio.
 
 ---
 
-### ADR-025: Smart Polling para Realtime (F4C)
+#---
+
+### ADR-026: Row-Level Security (RLS) en Supabase PostgreSQL
+
+| Campo | Valor |
+|-------|-------|
+| **Fecha** | 2026-07-30 |
+| **Contexto** | Alertas de seguridad de Supabase reportan tablas públicas sin RLS habilitado. El backend se conecta como `postgres` con `rolbypassrls = true` vía SQLAlchemy + asyncpg. No se usa Supabase SDK, REST API, GoTrue Auth ni Realtime en el frontend. La aplicación gestiona auth con JWT propio. |
+| **Problema** | Necesitamos habilitar RLS en las tablas para eliminar las alertas de Supabase sin romper la aplicación. Cualquier política incorrecta podría bloquear el backend (que escribe/lee millones de filas de conversaciones). |
+| **Alternativas** | Ignorar la alerta, activar RLS con policies `USING (true)`, activar RLS sin policies (default-deny) |
+| **Razón** | Se activa RLS con **default-deny (sin policies explícitas)** porque: el rol `postgres` tiene `rolbypassrls = true` (verificado mediante SQL directo), la app NO usa Supabase SDK/REST API donde RLS importa, y default-deny protege las tablas contra accesos desde Supabase REST API (anon/authenticated roles). No se necesita policy explícita ya que `rolbypassrls = true` hace que PostgreSQL omita las políticas RLS para ese rol. |
+| **Consecuencias** | + Alerta de Supabase resuelta, + app no se rompe (rolbypassrls=true), + tablas protegidas vs Supabase REST API anónimo, + defense-in-depth con FORCE ROW LEVEL SECURITY, - si en el futuro se integra Supabase Auth, habrá que crear policies específicas para el rol `authenticated`. |
+
+### Tablas afectadas (4):
+
+| Tabla | RLS | Política | Motivo |
+|-------|-----|----------|--------|
+| `users` | Habilitado | Default-deny | Contiene password hashes. Nunca debe ser accesible via Supabase REST API |
+| `contacts` | Habilitado | Default-deny | Datos de contacto (nombres, teléfonos, WhatsApp IDs). Protegidos vs API anónima |
+| `conversations` | Habilitado | Default-deny | Vincula contacts con conversaciones. Integridad protegida |
+| `messages` | Habilitado | Default-deny | Contenido completo de conversaciones. Protegido vs acceso no autorizado |
+
+### Migración Alembic:
+
+```
+b2c3d4e5f6a7_enable_row_level_security.py
+Revises: a1b2c3d4e5f6 (create users table)
+```
+
+Comandos SQL ejecutados por cada tabla:
+```sql
+ALTER TABLE <tabla> ENABLE ROW LEVEL SECURITY;
+ALTER TABLE <tabla> FORCE ROW LEVEL SECURITY;
+```
+
+`FORCE ROW LEVEL SECURITY` aplica RLS incluso a los dueños de la tabla (si no tienen `rolbypassrls`). El rol `postgres` tiene `rolbypassrls = true`, por lo que RLS y FORCE son transparentes para el backend.
+
+### ¿Qué NO cambia?
+
+- La app sigue conectando como `postgres` con `rolbypassrls = true` → RLS no se evalúa para sus queries
+- No se crean roles ni se cambian permisos existentes
+- No se introducen dependencias nuevas
+- Tests (SQLite) no se ven afectados — RLS es PostgreSQL-specific
+- Migraciones siguen ejecutándose normalmente (Alembic corre con el mismo rol `postgres`)
+
+### Riesgo
+
+- **Ninguno** para la aplicación actual. La app usa SQLAlchemy + asyncpg directo, no Supabase REST API.
+- Si en el futuro se integra Supabase Auth (GoTrue), las policies deberán crearse ANTES de habilitar `authenticated` role access.
+
+---
+
+## ADR-025: Smart Polling para Realtime (F4C)
 
 | Campo | Valor |
 |-------|-------|

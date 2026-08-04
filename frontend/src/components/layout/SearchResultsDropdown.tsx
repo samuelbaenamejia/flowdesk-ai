@@ -82,7 +82,7 @@ export function SearchResultsDropdown({
       <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800">
         <SearchX className="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Sin resultados para "{query}"
+          Sin resultados para &quot;{query}&quot;
         </p>
       </div>
     );

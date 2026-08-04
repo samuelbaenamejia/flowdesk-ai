@@ -1,6 +1,8 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRouter } from "next/router";
+import { vi } from "vitest";
+import type { Mock } from "vitest";
 import { useDashboard } from "@/hooks";
 import DashboardPage from "@/pages/dashboard/index";
 import type { Conversation, DashboardStats, MessagesOverTimePoint } from "@/types";
@@ -63,7 +65,7 @@ function createDashboardMock(overrides: Record<string, unknown> = {}) {
 describe("DashboardPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (useRouter as vi.Mock).mockReturnValue({ push: vi.fn() });
+    (useRouter as Mock).mockReturnValue({ push: vi.fn() });
     mockUseDashboard.mockReturnValue(createDashboardMock());
   });
 
@@ -89,7 +91,7 @@ describe("DashboardPage", () => {
 
   it("navigates to a conversation when a recent row is clicked", async () => {
     const push = vi.fn();
-    (useRouter as vi.Mock).mockReturnValue({ push });
+    (useRouter as Mock).mockReturnValue({ push });
     render(<DashboardPage />);
     await userEvent.click(screen.getByText("Juan Pérez"));
     expect(push).toHaveBeenCalledWith("/conversations/c1");
@@ -139,7 +141,7 @@ describe("DashboardPage", () => {
 
   it("renders the empty state with a CTA when there are no conversations", async () => {
     const push = vi.fn();
-    (useRouter as vi.Mock).mockReturnValue({ push });
+    (useRouter as Mock).mockReturnValue({ push });
     mockUseDashboard.mockReturnValue(
       createDashboardMock({ stats: { ...stats, total_conversations: 0 } })
     );

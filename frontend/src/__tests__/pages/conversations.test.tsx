@@ -1,6 +1,8 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRouter } from "next/router";
+import { vi } from "vitest";
+import type { Mock } from "vitest";
 import { useConversations } from "@/hooks/useConversations";
 import ConversationsPage from "@/pages/conversations";
 
@@ -34,6 +36,7 @@ function createMockReturn(overrides: Record<string, unknown> = {}) {
     handlePrevious: vi.fn(),
     handleNext: vi.fn(),
     retry: vi.fn(),
+    filters: { q: "", status: "", date_from: null, date_to: null },
     ...overrides,
   };
 }
@@ -41,7 +44,7 @@ function createMockReturn(overrides: Record<string, unknown> = {}) {
 describe("ConversationsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (useRouter as vi.Mock).mockReturnValue({ push: mockPush });
+    (useRouter as Mock).mockReturnValue({ push: mockPush });
   });
 
   it("renders loading state with skeletons", () => {

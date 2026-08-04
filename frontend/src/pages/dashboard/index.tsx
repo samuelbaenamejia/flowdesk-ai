@@ -1,4 +1,5 @@
 import { useRouter } from "next/router";
+import Head from "next/head";
 import { MessagesSquare, Clock, Inbox, ReplyAll, MessageSquare } from "lucide-react";
 import { useDashboard } from "@/hooks";
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -36,6 +37,9 @@ export default function DashboardPage() {
 
   return (
     <div>
+      <Head>
+        <title>Dashboard | FlowDesk</title>
+      </Head>
       <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-50">Dashboard</h2>
 
       {isEmpty ? (

@@ -10,7 +10,7 @@ from app.clients.whatsapp import WhatsAppSendError, send_text_message
 from app.core.config import settings
 from app.models.contact import Contact
 from app.models.conversation import Conversation
-from app.models.message import Message
+from app.models.message import Message, MessageStatus
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,9 @@ async def send_outgoing_message(
     try:
         wa_message_id = await send_text_message(contact.wa_id, content)
     except WhatsAppSendError as exc:
-        logger.error(
+        # El mensaje ya fue persistido como "pending" en el commit de Fase 1.
+        # Marquelo como "failed" para que no quede huérfano e informe al agente.
+        logger.exception(
             "whatsapp.send: error Meta conversation_id=%s message_id=%s "
             "meta_status=%s detail=%s",
             conversation_id,
@@ -104,6 +106,20 @@ async def send_outgoing_message(
             exc.status_code,
             exc.detail,
         )
+        try:
+            message.status = MessageStatus.FAILED
+            await db.commit()
+            logger.info(
+                "whatsapp.send: mensaje marcado failed message_id=%s",
+                message.id,
+            )
+        except Exception:
+            logger.exception(
+                "whatsapp.send: no se pudo marcar failed message_id=%s",
+                message.id,
+            )
+            await db.rollback()
+        # Conservamos el traceback: el caller decide si relanzar o silenciar.
         raise
 
     logger.info(

@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     whatsapp_verify_token: str = ""
     whatsapp_phone_number_id: str = ""
     whatsapp_access_token: str = ""
+    whatsapp_app_secret: str = ""
     whatsapp_graph_api_version: str = "v21.0"
     groq_api_key: str = ""
     groq_model: str = "llama-3.1-70b-versatile"

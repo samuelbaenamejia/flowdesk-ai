@@ -57,12 +57,14 @@ async def search_conversations(
                 subquery_last_msg.c.rn == 1,
             ),
         )
+        .where(Contact.deleted_at.is_(None))
     )
 
     count_base = (
         select(func.count(Conversation.id))
         .select_from(Conversation)
         .join(Contact, Conversation.contact_id == Contact.id)
+        .where(Contact.deleted_at.is_(None))
     )
 
     if q:
@@ -158,6 +160,7 @@ async def get_conversation(
             ),
         )
         .where(Conversation.id == conversation_id)
+        .where(Contact.deleted_at.is_(None))
     )
 
     result = await db.execute(query)

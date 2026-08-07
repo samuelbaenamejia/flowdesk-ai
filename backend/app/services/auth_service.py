@@ -5,10 +5,11 @@ from enum import Enum
 from fastapi import HTTPException, status
 from jose import ExpiredSignatureError, JWTError, jwt
 from passlib.context import CryptContext
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.models.refresh_token import RefreshToken
 from app.models.user import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -129,4 +130,9 @@ async def change_password(
             detail="La nueva contraseña no puede ser igual a la actual",
         )
     user.hashed_password = hash_password(new_password)
+    # Invalidar todos los refresh tokens existentes: obliga a re-login en
+    # todos los dispositivos tras un cambio de contraseña (esperado y seguro).
+    await db.execute(
+        delete(RefreshToken).where(RefreshToken.user_id == user_id)
+    )
     await db.commit()

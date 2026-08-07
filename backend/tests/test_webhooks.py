@@ -1,7 +1,25 @@
+import hashlib
+import hmac
+import json
 from unittest.mock import AsyncMock
 
 import pytest
 from httpx import AsyncClient
+
+from tests.conftest import TEST_WHATSAPP_APP_SECRET
+
+
+def _signature(body: bytes) -> str:
+    digest = hmac.new(
+        TEST_WHATSAPP_APP_SECRET.encode("utf-8"),
+        body,
+        hashlib.sha256,
+    ).hexdigest()
+    return f"sha256={digest}"
+
+
+def _sig_headers(body: bytes) -> dict:
+    return {"X-Hub-Signature-256": _signature(body)}
 
 
 def _text_payload(
@@ -120,30 +138,83 @@ class TestVerify:
         assert response.status_code == 403
 
 
-class TestReceiveInvalid:
-    async def test_receive_invalid_json(self, client: AsyncClient):
+class TestSignature:
+    async def test_receive_missing_signature_returns_403(self, client: AsyncClient):
+        body = json.dumps(_text_payload()).encode("utf-8")
         response = await client.post(
             "/api/v1/webhooks/whatsapp",
-            content=b"not json",
+            content=body,
             headers={"Content-Type": "application/json"},
+        )
+        assert response.status_code == 403
+        assert response.json() == {"detail": "Invalid signature"}
+
+    async def test_receive_wrong_signature_returns_403(self, client: AsyncClient):
+        body = json.dumps(_text_payload()).encode("utf-8")
+        response = await client.post(
+            "/api/v1/webhooks/whatsapp",
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                "X-Hub-Signature-256": "sha256=fffffffffffffffffffffffffff"
+                "fffffffffffffffffffffffffffffffffffffffffff",
+            },
+        )
+        assert response.status_code == 403
+
+    async def test_receive_valid_signature_accepted(self, client: AsyncClient):
+        body = json.dumps(_text_payload(wa_msg_id="sig_ok")).encode("utf-8")
+        response = await client.post(
+            "/api/v1/webhooks/whatsapp",
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
+        )
+        assert response.status_code == 200
+
+
+class TestReceiveInvalid:
+    async def test_receive_invalid_json(self, client: AsyncClient):
+        body = b"not json"
+        response = await client.post(
+            "/api/v1/webhooks/whatsapp",
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
 
     async def test_receive_invalid_payload(self, client: AsyncClient):
+        body = json.dumps({"invalid": True}).encode("utf-8")
         response = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json={"invalid": True},
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
 
     async def test_receive_non_whatsapp_object(self, client: AsyncClient):
-        response = await client.post(
-            "/api/v1/webhooks/whatsapp",
-            json={
+        body = json.dumps(
+            {
                 "object": "not_whatsapp",
                 "entry": [{"changes": [{"value": {}, "field": ""}]}],
+            }
+        ).encode("utf-8")
+        response = await client.post(
+            "/api/v1/webhooks/whatsapp",
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
             },
         )
         assert response.status_code == 200
@@ -191,8 +262,14 @@ class TestReceiveInvalid:
                 }
             ],
         }
+        body = json.dumps(payload).encode("utf-8")
         response = await client.post(
-            "/api/v1/webhooks/whatsapp", json=payload
+            "/api/v1/webhooks/whatsapp",
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200
 
@@ -203,8 +280,14 @@ class TestReceiveInvalid:
             "app.core.config.settings.whatsapp_phone_number_id",
             "different-ph",
         )
+        body = json.dumps(_text_payload()).encode("utf-8")
         response = await client.post(
-            "/api/v1/webhooks/whatsapp", json=_text_payload()
+            "/api/v1/webhooks/whatsapp",
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200
 
@@ -224,9 +307,14 @@ class TestReceiveMessage:
         mock_whatsapp,
         db_session,
     ):
+        body = json.dumps(_text_payload(wa_msg_id="new_msg_001")).encode("utf-8")
         response = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_text_payload(wa_msg_id="new_msg_001"),
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200
 
@@ -265,9 +353,16 @@ class TestReceiveMessage:
 
         from app.models.conversation import Conversation
 
+        body = json.dumps(
+            _text_payload(wa_msg_id="existing_conv_msg")
+        ).encode("utf-8")
         response = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_text_payload(wa_msg_id="existing_conv_msg"),
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200
 
@@ -295,15 +390,25 @@ class TestReceiveMessage:
 
         from app.models.conversation import Conversation
 
+        body1 = json.dumps(_text_payload(wa_msg_id="acc_msg_001")).encode("utf-8")
         first = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_text_payload(wa_msg_id="acc_msg_001"),
+            content=body1,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body1),
+            },
         )
         assert first.status_code == 200
 
+        body2 = json.dumps(_text_payload(wa_msg_id="acc_msg_002")).encode("utf-8")
         second = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_text_payload(wa_msg_id="acc_msg_002"),
+            content=body2,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body2),
+            },
         )
         assert second.status_code == 200
 
@@ -332,9 +437,14 @@ class TestReceiveMessage:
             "app.services.message_service.generate_response", mock_generate
         )
 
+        body = json.dumps(_text_payload(wa_msg_id="takeover_msg")).encode("utf-8")
         response = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_text_payload(wa_msg_id="takeover_msg"),
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200
         mock_generate.assert_not_called()
@@ -352,9 +462,14 @@ class TestReceiveMessage:
         test_conversation.status = "closed"
         await db_session.commit()
 
+        body = json.dumps(_text_payload(wa_msg_id="closed_msg")).encode("utf-8")
         response = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_text_payload(wa_msg_id="closed_msg"),
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200
 
@@ -396,9 +511,14 @@ class TestReceiveMessage:
             mock_groq_error,
         )
 
+        body = json.dumps(_text_payload(wa_msg_id="groq_fail")).encode("utf-8")
         response = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_text_payload(wa_msg_id="groq_fail"),
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200
 
@@ -422,20 +542,44 @@ class TestReceiveMessage:
             mock_wa_error,
         )
 
+        body = json.dumps(_text_payload(wa_msg_id="wa_fail")).encode("utf-8")
         response = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_text_payload(wa_msg_id="wa_fail"),
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200
+
+        # El mensaje enviado no debe quedar "pending": se marca "failed"
+        from sqlalchemy import select
+
+        from app.models.message import Message
+
+        result = await db_session.execute(
+            select(Message).where(Message.wa_message_id.is_(None)).order_by(
+                Message.created_at.desc()
+            )
+        )
+        messages = result.scalars().all()
+        failed = [m for m in messages if m.status == "failed"]
+        assert any(failed), "Se esperaba un mensaje marcado como failed"
 
     async def test_receive_status_not_found(
         self,
         client: AsyncClient,
         settings_phone,
     ):
+        body = json.dumps(_status_payload(wa_msg_id="nonexistent_msg")).encode("utf-8")
         response = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_status_payload(wa_msg_id="nonexistent_msg"),
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200
 
@@ -459,9 +603,14 @@ class TestReceiveMessage:
         db_session.add(msg)
         await db_session.commit()
 
+        body = json.dumps(_status_payload(wa_msg_id="wa_status_msg")).encode("utf-8")
         response = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_status_payload(wa_msg_id="wa_status_msg"),
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200
 
@@ -478,15 +627,25 @@ class TestReceiveMessage:
         mock_whatsapp,
         db_session,
     ):
+        body1 = json.dumps(_text_payload(wa_msg_id="dup_msg")).encode("utf-8")
         response1 = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_text_payload(wa_msg_id="dup_msg"),
+            content=body1,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body1),
+            },
         )
         assert response1.status_code == 200
 
+        body2 = json.dumps(_text_payload(wa_msg_id="dup_msg")).encode("utf-8")
         response2 = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_text_payload(wa_msg_id="dup_msg"),
+            content=body2,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body2),
+            },
         )
         assert response2.status_code == 200
 
@@ -517,9 +676,14 @@ class TestN8nModes:
         mock_whatsapp,
         mock_n8n_notify,
     ):
+        body = json.dumps(_text_payload(wa_msg_id="n8n_disabled")).encode("utf-8")
         response = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_text_payload(wa_msg_id="n8n_disabled"),
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200
         assert mock_n8n_notify["count"] == 0
@@ -539,9 +703,14 @@ class TestN8nModes:
             "app.core.config.settings.n8n_mode", "mirror"
         )
 
+        body = json.dumps(_text_payload(wa_msg_id="mirror_mode")).encode("utf-8")
         response = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_text_payload(wa_msg_id="mirror_mode"),
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200
         assert mock_n8n_notify["count"] == 1
@@ -565,9 +734,14 @@ class TestN8nModes:
         gp = pytest.MonkeyPatch()
         gp.setattr(ms, "generate_response", mock_groq)
 
+        body = json.dumps(_text_payload(wa_msg_id="primary_mode")).encode("utf-8")
         response = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_text_payload(wa_msg_id="primary_mode"),
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200
         assert mock_n8n_notify["count"] == 1
@@ -596,8 +770,13 @@ class TestN8nModes:
             "app.api.v1.webhooks._notify_n8n", mock_notify_fail
         )
 
+        body = json.dumps(_text_payload(wa_msg_id="n8n_fail")).encode("utf-8")
         response = await client.post(
             "/api/v1/webhooks/whatsapp",
-            json=_text_payload(wa_msg_id="n8n_fail"),
+            content=body,
+            headers={
+                "Content-Type": "application/json",
+                **_sig_headers(body),
+            },
         )
         assert response.status_code == 200

@@ -203,6 +203,16 @@ class TestDeleteContact:
         )
         assert get_response.status_code == 404
 
+    async def test_hard_delete_contact_with_conversations_returns_409(
+        self, client, auth_headers, test_contact, test_conversation
+    ):
+        response = await client.delete(
+            f"/api/v1/contacts/{test_contact.id}/hard",
+            headers=auth_headers,
+        )
+        assert response.status_code == 409
+        assert "conversation" in response.text.lower()
+
     async def test_delete_contact_not_found_returns_404(
         self, client, auth_headers
     ):

@@ -1,11 +1,13 @@
 ﻿import asyncio
+import hashlib
+import hmac
 import json
 import logging
 import uuid
 from datetime import UTC, datetime
 
 import httpx
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse
 from pydantic import ValidationError
 from sqlalchemy import select
@@ -41,11 +43,45 @@ async def verify_webhook(
     return PlainTextResponse(content=hub_challenge)
 
 
+async def _valid_signature(request: Request) -> bool:
+    """Valida la firma X-Hub-Signature-256 de Meta sobre el body crudo.
+
+    La firma es HMAC-SHA256 del body tal cual llega (bytes exactos, no JSON
+    re-serializado), usando el App Secret de la aplicación de Meta.
+    """
+    if not settings.whatsapp_app_secret:
+        logger.warning("webhook.signature: app_secret no configurado")
+        return False
+
+    signature = request.headers.get("X-Hub-Signature-256", "")
+    if not signature:
+        logger.warning("webhook.signature: cabecera ausente")
+        return False
+
+    payload = await request.body()
+
+    expected = hmac.new(
+        settings.whatsapp_app_secret.encode("utf-8"),
+        payload,
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(signature, f"sha256={expected}")
+
+
 @router.post("/webhooks/whatsapp")
 async def receive_webhook(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
+    # Meta firma el body crudo con HMAC-SHA256 usando el App Secret.
+    # Rechazamos cualquier payload sin firma o con firma inválida.
+    if not await _valid_signature(request):
+        logger.warning("webhook.receive: firma X-Hub-Signature-256 inválida")
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid signature",
+        )
+
     try:
         body = await request.json()
     except json.JSONDecodeError:
@@ -65,11 +101,13 @@ async def receive_webhook(
     for entry in payload.entry:
         for change in entry.changes:
             try:
-                async with db.begin():
-                    await _process_webhook_entry(change, db)
+                await _process_webhook_entry(change, db)
+                await db.commit()
             except IntegrityError:
+                await db.rollback()
                 logger.warning("webhook.receive: wa_message_id duplicado")
             except Exception:
+                await db.rollback()
                 logger.exception("webhook.receive: error procesando")
 
     return {"status": "ok"}

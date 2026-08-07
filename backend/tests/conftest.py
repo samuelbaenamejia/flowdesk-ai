@@ -1,3 +1,4 @@
+import os
 import uuid
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
@@ -5,6 +6,7 @@ from datetime import UTC, datetime
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
@@ -17,8 +19,15 @@ from app.models.message import Message, MessageDirection
 from app.models.user import User
 from app.services.auth_service import hash_password
 
-TEST_DATABASE_URL = "sqlite+aiosqlite://"
+TEST_DATABASE_URL = os.getenv(
+    "TEST_DATABASE_URL", "sqlite+aiosqlite://"
+)
 TEST_INTERNAL_API_KEY = "test-internal-key"
+TEST_WHATSAPP_APP_SECRET = "test-app-secret"
+
+# Modo PostgreSQL: el schema lo crea Alembic (alembic upgrade head) en el job
+# de CI. Los tests solo truncan tablas entre tests — nunca create_all().
+USING_POSTGRESQL = TEST_DATABASE_URL.startswith("postgresql")
 
 TEST_USER_ID = uuid.uuid4()
 TEST_CONTACT_ID = uuid.uuid4()
@@ -29,6 +38,8 @@ _TEST_HASH = None
 
 # Ensure internal API key is set for tests
 settings.internal_api_key = TEST_INTERNAL_API_KEY
+# App secret para validar firmas de webhook en tests
+settings.whatsapp_app_secret = TEST_WHATSAPP_APP_SECRET
 
 
 def _get_test_user_hash() -> str:
@@ -40,24 +51,34 @@ def _get_test_user_hash() -> str:
 
 @pytest_asyncio.fixture
 async def db_session() -> AsyncGenerator:
-    engine = create_async_engine(
-        TEST_DATABASE_URL,
-        echo=False,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    if USING_POSTGRESQL:
+        # Schema ya aplicado por Alembic en CI. Sin create_all().
+        engine = create_async_engine(TEST_DATABASE_URL)
+        async with engine.begin() as conn:
+            # TRUNCATE CASCADE limpia el estado entre tests.
+            await conn.execute(text("TRUNCATE TABLE messages, contact_tags, conversations, contacts, tags, refresh_tokens, users RESTART IDENTITY CASCADE"))
+    else:
+        engine = create_async_engine(
+            TEST_DATABASE_URL,
+            echo=False,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
 
     factory = async_sessionmaker(engine, expire_on_commit=False)
 
     async with factory() as session:
         yield session
 
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    if USING_POSTGRESQL:
+        await engine.dispose()
+    else:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
 
-    await engine.dispose()
+        await engine.dispose()
 
 
 @pytest_asyncio.fixture

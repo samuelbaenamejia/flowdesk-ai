@@ -22,7 +22,18 @@ import {
   UserProfile,
 } from "@/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+function getApiUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL;
+  if (configured) return configured;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Falta definir NEXT_PUBLIC_API_URL en el build de producción."
+    );
+  }
+  return "http://localhost:8000";
+}
+
+const API_URL = getApiUrl();
 
 export class AuthError extends Error {
   constructor(message: string) {

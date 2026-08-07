@@ -1,3 +1,4 @@
+import hmac
 import logging
 import uuid
 
@@ -22,7 +23,7 @@ async def trigger_ai(
     x_internal_key: str = Header(default="", alias="X-Internal-Key"),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    if x_internal_key != settings.internal_api_key:
+    if not hmac.compare_digest(x_internal_key, settings.internal_api_key):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid internal API key",
@@ -77,7 +78,10 @@ async def request_human_approval(
     x_internal_key: str = Header(default="", alias="X-Internal-Key"),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    if x_internal_key != settings.internal_api_key:
+    if not hmac.compare_digest(
+        x_internal_key,
+        settings.internal_api_key,
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid internal API key",

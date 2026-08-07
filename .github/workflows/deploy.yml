@@ -50,6 +50,8 @@ jobs:
           context: frontend
           file: frontend/Dockerfile
           push: true
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
           tags: |
             ${{ env.FRONTEND_IMAGE }}:${{ steps.tags.outputs.tag }}
             ${{ env.FRONTEND_IMAGE }}:latest

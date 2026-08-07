@@ -6,12 +6,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml .
-RUN pip install --no-cache-dir .
-
 COPY alembic.ini .
 COPY alembic/ alembic/
 COPY app/ app/
 COPY scripts/ scripts/
+
+RUN pip install --no-cache-dir .
 
 RUN chmod +x scripts/entrypoint.sh
 

@@ -6,6 +6,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.contact import Contact
+from app.models.conversation import Conversation
 from app.models.tag import ContactTag, Tag
 from app.schemas.contact import ContactCreate, ContactUpdate
 from app.schemas.tag import TagCreate
@@ -127,6 +128,25 @@ async def soft_delete(db: AsyncSession, contact_id: uuid.UUID) -> None:
 
 async def hard_delete(db: AsyncSession, contact_id: uuid.UUID) -> None:
     contact = await get_contact(db, contact_id)
+
+    # La FK conversations.contact_id NO tiene ON DELETE CASCADE en la migración:
+    # un borrado físico con conversaciones produciría IntegrityError (500).
+    # Bloqueamos el borrado si hay dependencias para evitar pérdida de datos.
+    result = await db.execute(
+        select(func.count(Conversation.id)).where(
+            Conversation.contact_id == contact_id
+        )
+    )
+    conv_count = result.scalar()
+    if conv_count and conv_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Contact has {conv_count} conversation(s). "
+                "Use soft delete instead."
+            ),
+        )
+
     await db.delete(contact)
     await db.commit()
 

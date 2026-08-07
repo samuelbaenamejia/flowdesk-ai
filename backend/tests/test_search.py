@@ -1,3 +1,5 @@
+from sqlalchemy import select
+
 from tests.conftest import TEST_CONVERSATION_ID
 
 
@@ -173,3 +175,27 @@ class TestGlobalSearch:
         assert response.status_code == 200
         data = response.json()
         assert data["messages"]["total"] >= 1
+
+    async def test_search_excludes_soft_deleted_contacts(
+        self, client, auth_headers, test_conversation, test_message, db_session
+    ):
+        from datetime import UTC, datetime
+
+        from app.models.contact import Contact
+
+        result = await db_session.execute(
+            select(Contact).where(Contact.id == test_conversation.contact_id)
+        )
+        contact = result.scalar_one()
+        contact.deleted_at = datetime.now(UTC)
+        await db_session.commit()
+
+        response = await client.get(
+            "/api/v1/search",
+            params={"q": "help"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["messages"]["total"] == 0
+        assert data["conversations"]["total"] == 0

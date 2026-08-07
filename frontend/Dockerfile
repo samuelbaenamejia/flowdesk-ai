@@ -7,6 +7,9 @@ RUN npm install
 
 FROM base AS build
 WORKDIR /app
+ARG NEXT_PUBLIC_API_URL
+RUN test -n "$NEXT_PUBLIC_API_URL" || (echo "ERROR: NEXT_PUBLIC_API_URL es obligatoria" && exit 1)
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY package.json ./
 RUN npm install
 COPY . .

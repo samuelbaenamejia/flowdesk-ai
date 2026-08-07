@@ -2,7 +2,6 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from jose import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,14 +21,12 @@ from app.schemas.auth import (
     UserResponse,
 )
 from app.services.auth_service import (
-    ALGORITHM,
-    TokenErrorCode,
     change_password,
     create_access_token,
     create_refresh_token,
     decode_access_token,
-    get_user_by_email,
     get_profile,
+    get_user_by_email,
     update_profile,
     verify_password,
 )
@@ -93,10 +90,12 @@ async def refresh_token(
         )
 
     stored_token = await db.execute(
-        select(RefreshToken).where(
+        select(RefreshToken)
+        .where(
             RefreshToken.token_jti == uuid.UUID(jti),
             RefreshToken.revoked_at.is_(None),
         )
+        .with_for_update()
     )
     stored_token = stored_token.scalar_one_or_none()
 

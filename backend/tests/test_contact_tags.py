@@ -45,8 +45,9 @@ class TestAssignTag:
         assert response.status_code == 409
 
     async def test_assign_tag_to_nonexistent_contact(self, client, auth_headers, db_session):
-        from app.models.tag import Tag
         import uuid
+
+        from app.models.tag import Tag
 
         tag = Tag(name="orphan-tag")
         db_session.add(tag)

@@ -1,4 +1,5 @@
-import time
+
+from sqlalchemy import select
 
 from app.models.user import User
 from app.services.auth_service import create_access_token
@@ -311,6 +312,42 @@ class TestChangePassword:
             },
         )
         assert login_response.status_code == 200
+
+    async def test_change_password_invalidates_refresh_tokens(
+        self, client, auth_headers, test_user, db_session
+    ):
+        from app.models.refresh_token import RefreshToken
+
+        login_resp = await client.post(
+            "/api/v1/auth/login",
+            json={"email": "test@example.com", "password": TEST_PASSWORD},
+        )
+        assert login_resp.status_code == 200
+        refresh_token = login_resp.json()["refresh_token"]
+
+        response = await client.post(
+            "/api/v1/auth/change-password",
+            json={
+                "current_password": TEST_PASSWORD,
+                "new_password": "NewPass12345!",
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 204
+
+        result = await db_session.execute(
+            select(RefreshToken).where(
+                RefreshToken.user_id == test_user.id
+            )
+        )
+        stored = result.scalars().all()
+        assert stored == [], "Los refresh tokens debieron eliminarse tras el cambio"
+
+        refresh_resp = await client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": refresh_token},
+        )
+        assert refresh_resp.status_code == 401
 
     async def test_change_password_wrong_current(
         self, client, auth_headers

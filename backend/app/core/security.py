@@ -6,22 +6,94 @@ from fastapi import HTTPException, Request, status
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SECRETS = {"change-me-in-production"}
+DEFAULT_SECRETS = {
+    "change-me",
+    "change-me-in-production",
+    "changeme",
+    "default",
+    "test",
+    "testing",
+    "dev",
+    "development",
+    "example",
+    "your-key",
+    "secret",
+    "123456",
+    "password",
+}
+
+SECRET_MIN_LENGTH = 32
+TOKEN_MIN_LENGTH = 16
+ENV_EXAMPLE_DATABASE_URL = "postgresql+asyncpg://user:password@host:5432/flowdesk"
+
+
+def _validate_secret(
+    name: str, value: str, min_length: int | None = None
+) -> list[str]:
+    """Devuelve la lista de errores para un secreto en producción."""
+    if not value or not value.strip():
+        return [f"{name} está vacía"]
+
+    normalized = value.strip().lower()
+    if normalized in DEFAULT_SECRETS:
+        return [f"{name} es un valor placeholder por defecto"]
+
+    if min_length is not None and len(normalized) < min_length:
+        return [f"{name} tiene {len(normalized)} caracteres (< {min_length})"]
+
+    return []
 
 
 def validate_settings() -> None:
     from app.core.config import settings
 
-    sensitive = {
-        "SECRET_KEY": settings.secret_key,
-        "INTERNAL_API_KEY": settings.internal_api_key,
-    }
-    for name, value in sensitive.items():
-        if value in DEFAULT_SECRETS:
-            logger.warning(
-                "%s is set to a default/placeholder value — replace it before deploying to production",
-                name,
+    if settings.environment.strip().lower() != "production":
+        return
+
+    errors: list[str] = []
+
+    errors.extend(_validate_secret("SECRET_KEY", settings.secret_key, SECRET_MIN_LENGTH))
+    errors.extend(
+        _validate_secret(
+            "INTERNAL_API_KEY", settings.internal_api_key, SECRET_MIN_LENGTH
+        )
+    )
+
+    database_url = (settings.database_url or "").strip()
+    if not database_url:
+        errors.append("DATABASE_URL está vacía")
+    elif database_url == ENV_EXAMPLE_DATABASE_URL:
+        errors.append("DATABASE_URL usa el valor placeholder del .env.example")
+
+    # En modo primary, el envío lo orquesta n8n y el backend no necesita el token.
+    if not (settings.n8n_enabled and settings.n8n_mode == "primary"):
+        errors.extend(
+            _validate_secret(
+                "WHATSAPP_ACCESS_TOKEN",
+                settings.whatsapp_access_token,
+                TOKEN_MIN_LENGTH,
             )
+        )
+
+    errors.extend(
+        _validate_secret(
+            "WHATSAPP_VERIFY_TOKEN", settings.whatsapp_verify_token
+        )
+    )
+    errors.extend(
+        _validate_secret(
+            "WHATSAPP_APP_SECRET", settings.whatsapp_app_secret, SECRET_MIN_LENGTH
+        )
+    )
+
+    if not (settings.whatsapp_phone_number_id or "").strip():
+        errors.append("WHATSAPP_PHONE_NUMBER_ID está vacía")
+
+    if errors:
+        raise RuntimeError(
+            "Validación de producción fallida. Refusing to start.\n"
+            + "\n".join(f"  - {e}" for e in errors)
+        )
 
 
 class InMemoryRateLimiter:

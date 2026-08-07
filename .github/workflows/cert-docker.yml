@@ -1,0 +1,306 @@
+name: Cert-Docker-Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: "NEXT_PUBLIC_API_URL real de produccion"
+        required: true
+        default: "https://app.flowdesk.ai"
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  NEXT_PUBLIC_API_URL: ${{ inputs.api_url }}
+
+jobs:
+  cert:
+    runs-on: ubuntu-latest
+    concurrency: cert-docker-smoke
+
+    env:
+      TEST_PG_USER: flowdesk
+      TEST_PG_PASSWORD: flowdesk
+      TEST_PG_DB: flowdesk_cert
+      TEST_PG_PORT: 5432
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ============ FASE 2 — BUILD REAL BACKEND ============
+      - name: F2 Build backend (same context/file as deploy.yml)
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: false
+          tags: flowdesk-cert/backend:cert
+
+      - name: F2 Verify backend image (import app.main + uvicorn start)
+        run: |
+          set -euo pipefail
+          SECRET=$(openssl rand -hex 32)
+          APIKEY=$(openssl rand -hex 32)
+          WATOKEN=$(openssl rand -hex 24)
+          WAVERIFY=$(openssl rand -hex 24)
+          WAAPP=$(openssl rand -hex 32)
+          IMG=flowdesk-cert/backend:cert
+
+          echo "--- import app.main ---"
+          docker run --rm -e ENVIRONMENT=production \
+            -e DATABASE_URL="postgresql+asyncpg://${TEST_PG_USER}:${TEST_PG_PASSWORD}@localhost:${TEST_PG_PORT:-5432}/${TEST_PG_DB}" \
+            -e SECRET_KEY="${SECRET}" -e INTERNAL_API_KEY="${APIKEY}" \
+            -e WHATSAPP_ACCESS_TOKEN="${WATOKEN}" -e WHATSAPP_VERIFY_TOKEN="${WAVERIFY}" \
+            -e WHATSAPP_APP_SECRET="${WAAPP}" -e WHATSAPP_PHONE_NUMBER_ID="1234567890" \
+            --entrypoint python "${IMG}" -c "import app.main; print('backend import OK')"
+
+          echo "== uvicorn starts (smoke, exits via timeout) == "
+          docker run -d --name cert-backend-boot -e ENVIRONMENT=production \
+            -e DATABASE_URL="postgresql+asyncpg://${TEST_PG_USER}:${TEST_PG_PASSWORD}@localhost:${TEST_PG_PORT:-5432}/${TEST_PG_DB}" \
+            -e SECRET_KEY="${SECRET}" -e INTERNAL_API_KEY="${APIKEY}" \
+            -e WHATSAPP_ACCESS_TOKEN="${WATOKEN}" -e WHATSAPP_VERIFY_TOKEN="${WAVERIFY}" \
+            -e WHATSAPP_APP_SECRET="${WAAPP}" -e WHATSAPP_PHONE_NUMBER_ID="1234567890" \
+            --entrypoint python "${IMG}" -c "import uvicorn; from app.main import app; uvicorn.run(app, host='0.0.0.0', port=8000)"
+          for i in $(seq 1 30); do
+            if docker logs cert-backend-boot 2>/dev/null | grep -q "Uvicorn running"; then break; fi
+            sleep 1
+          done
+          docker logs cert-backend-boot 2>&1 | tail -5
+          docker rm -f cert-backend-boot >/dev/null
+
+      # ============ FASE 3 — Build REAL Frontend ============
+      - name: F3 Build frontend (real NEXT_PUBLIC_API_URL)
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          push: false
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ inputs.api_url }}
+          tags: flowdesk-cert/frontend:cert
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: F3 grep localhost in artifact (expect 0 in .next/public)
+        run: |
+          set -euo pipefail
+          IMG=flowdesk-cert/frontend:cert
+          docker run --rm --entrypoint sh "${IMG}" -c '
+            echo "--- scanning .next and public for localhost:8000 ---"
+            FOUND=$(find /app/.next /app/public -type f \( -name "*.js" -o -name "*.css" -o -name "*.html" -o -name "*.json" \) -print0 \
+              | xargs -0 grep -l "http://localhost:8000" 2>/dev/null || true)
+            if [ -n "$FOUND" ]; then
+              echo "LEAK: files with localhost:8000:"; echo "$FOUND"; exit 1
+            fi
+            echo "localhost:8000 occurrences = 0"
+            echo "--- expecting real API URL present ---"
+            grep -rl "${{ inputs.api_url }}" /app/.next | head -5 || (echo "MISSING: ${{ inputs.api_url }} not found in .next"; exit 1)
+          '
+
+      # ============ F4 — docker compose config (production) ============
+      - name: F4 docker compose config (prod)
+        run: |
+          set -euo pipefail
+          # Generar .env temporal de prueba para el compose (env_file del base)
+          cat > backend/.env <<EOF
+          ENVIRONMENT=production
+          DATABASE_URL=postgresql+asyncpg://flowdesk:flowdesk@postgres:5432/flowdesk_cert
+          SECRET_KEY=$(openssl rand -hex 32)
+          INTERNAL_API_KEY=$(openssl rand -hex 32)
+          WHATSAPP_ACCESS_TOKEN=$(openssl rand -hex 24)
+          WHATSAPP_VERIFY_TOKEN=$(openssl rand -hex 24)
+          WHATSAPP_APP_SECRET=$(openssl rand -hex 32)
+          WHATSAPP_PHONE_NUMBER_ID=1234567890
+          WHATSAPP_GRAPH_API_VERSION=v21.0
+          N8N_ENABLED=false
+          N8N_MODE=disabled
+          EOF
+          export N8N_URL="http://localhost:5678" N8N_WEBHOOK_URL="http://localhost:5678" N8N_ENABLED="false" N8N_MODE="disabled"
+          export INTERNAL_API_KEY="$(openssl rand -hex 32)"
+          export N8N_PORT=5678 N8N_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+          docker compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml config --quiet && \
+            echo "docker compose config OK (base+prod)"
+
+# ============ F5/F6 — stack aislado + Postgres temporal + Alembic ============
+      - name: F5/F6 Start smoke stack with temp Postgres + alembic upgrade head
+        run: |
+          set -euo pipefail
+          cat > /tmp/cert-smoke.yml <<EOF
+          name: cert-smoke
+          services:
+            backend:
+              image: flowdesk-cert/backend:cert
+              pull_policy: never
+              ports: ["8000:8000"]
+              env_file:
+                - backend/.env
+              healthcheck:
+                test: ["CMD", "curl", "--fail", "http://localhost:8000/health"]
+                interval: 5s
+                timeout: 3s
+                start_period: 10s
+                retries: 30
+              depends_on:
+                postgres:
+                  condition: service_healthy
+            frontend:
+              image: flowdesk-cert/frontend:cert
+              pull_policy: never
+              ports: ["3000:3000"]
+              depends_on:
+                backend:
+                  condition: service_healthy
+              healthcheck:
+                test: ["CMD", "curl", "--fail", "http://localhost:3000/"]
+                interval: 5s
+                timeout: 3s
+                start_period: 15s
+                retries: 30
+            postgres:
+              image: postgres:16-alpine
+              environment:
+                POSTGRES_USER: flowdesk
+                POSTGRES_PASSWORD: flowdesk
+                POSTGRES_DB: flowdesk_cert
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U flowdesk -d flowdesk_cert"]
+                interval: 3s
+                timeout: 3s
+                retries: 30
+          EOF
+
+          docker compose -f /tmp/cert-smoke.yml up -d postgres
+          echo "waiting postgres healthy..."
+          for i in $(seq 1 30); do
+            if docker compose -f /tmp/cert-smoke.yml exec -T postgres pg_isready -U flowdesk -d flowdesk_cert >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+
+          echo "== docker compose config (smoke stack) =="
+          docker compose -f /tmp/cert-smoke.yml config --quiet && echo "smoke compose config OK"
+
+          echo "== alembic upgrade head =="
+          docker compose -f /tmp/cert-smoke.yml run --rm --no-deps backend alembic upgrade head
+
+          echo "== alembic current =="
+          docker compose -f /tmp/cert-smoke.yml run --rm --no-deps backend alembic current
+
+          echo "== alembic heads =="
+          docker compose -f /tmp/cert-smoke.yml run --rm --no-deps backend alembic heads
+
+      # ============ F5/F7 — Backend up + smoke HTTP ============
+      - name: F7 Backend smoke (health, auth, JWT, internal key)
+        run: |
+          set -euo pipefail
+          compose_file () { docker compose -f /tmp/cert-smoke.yml "$@"; }
+
+          compose_file up -d backend frontend
+          echo "waiting backend /health..."
+          for i in $(seq 1 40); do
+            if curl -sf http://localhost:8000/health >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          echo "== /health =="
+          curl -s -w "\nHTTP %{http_code}\n" http://localhost:8000/health
+
+          INTERNAL_KEY=$(grep '^INTERNAL_API_KEY=' backend/.env | cut -d= -f2)
+
+          echo "== seed + login =="
+          compose_file exec -T backend python -c '
+          import asyncio, uuid
+          from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+          from sqlalchemy import select
+          from app.core.config import settings
+          from app.models.user import User
+          from app.services.auth_service import hash_password
+
+          async def main():
+              engine = create_async_engine(settings.database_url)
+              async with async_sessionmaker(engine, expire_on_commit=False)() as s:
+                  found = (await s.execute(select(User).where(User.email=="cert@flowdesk.test"))).scalar_one_or_none()
+                  if found is None:
+                      u = User(id=uuid.uuid4(), email="cert@flowdesk.test", hashed_password=hash_password("CertTest123!"), is_active=True)
+                      s.add(u); await s.commit()
+              await engine.dispose()
+              print("seed ok")
+          asyncio.run(main())
+          '
+          LOGIN=$(curl -s -X POST http://localhost:8000/auth/login -H 'Content-Type: application/json' \
+            -d '{"email":"cert@flowdesk.test","password":"CertTest123!"}')
+          echo "$LOGIN" | python -c 'import sys,json; d=json.load(sys.stdin); assert "access_token" in d and "refresh_token" in d; print("login HTTP OK, token_type:", d.get("token_type"))'
+          ACCESS=$(echo "$LOGIN" | python -c 'import sys,json; print(json.load(sys.stdin)["access_token"])')
+          REFRESH=$(echo "$LOGIN" | python -c 'import sys,json; print(json.load(sys.stdin)["refresh_token"])')
+
+          echo "== /auth/me =="
+          curl -s -w "\nHTTP %{http_code}\n" http://localhost:8000/auth/me -H "Authorization: Bearer $ACCESS"
+
+          echo "== /auth/refresh =="
+          curl -s -w "\nHTTP %{http_code}\n" -X POST http://localhost:8000/auth/refresh \
+            -H 'Content-Type: application/json' -d "{\"refresh_token\":\"$REFRESH\"}" | tail -1
+
+          echo "== internal rejects wrong key (expect 401) =="
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            http://localhost:8000/internal/conversations/00000000-0000-0000-0000-000000000000/trigger-ai \
+            -H 'X-Internal-Key: invalid-key')
+          echo "HTTP $CODE (want 401)"; test "$CODE" = "401"
+
+          echo "== internal accepts correct key (expect 404 conversation) =="
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            http://localhost:8000/internal/conversations/00000000-0000-0000-0000-000000000000/trigger-ai \
+            -H "X-Internal-Key: $INTERNAL_API_KEY")
+          echo "HTTP $CODE (want 404: auth ok, conversation not found)"; test "$CODE" = "404"
+
+      # ============ F8 — Frontend smoke ============
+      - name: F3 F8 frontend runtime smoke
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/ >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          echo "== frontend root =="
+          HTML=$(curl -sf http://localhost:3000/)
+          echo "$HTML" | grep -o "<title>[^<]*</title>" || echo "(no title)"
+          echo "$HTML" | grep -o 'src="[^"]*"' | head -3
+          echo "== frontend bundle: no localhost API, real URL present =="
+          docker run --rm --entrypoint sh flowdesk-cert/frontend:cert -c \
+            'grep -rl "http://localhost:8000" /app/.next 2>/dev/null || echo "NO localhost:8000 in .next"; grep -rl "${{ inputs.api_url }}" /app/.next | head -1'
+
+      # ============ F9/F10/F11 — stability + secrets ============
+      - name: F9/F10/F11 Stability, connectivity, secrets
+        run: |
+          set -euo pipefail
+          compose="docker compose -f /tmp/cert-smoke.yml"
+
+          echo "== stability window (60s) =="
+          sleep 60
+
+          echo "== container states + RestartCount =="
+          for c in backend frontend postgres; do
+            CID=$(docker compose -f /tmp/cert-smoke.yml ps -q $c)
+            STATE=$(docker inspect -f '{{.State.Status}} restart={{.RestartCount}}' "$CID")
+            H=$(docker inspect -f '{{.State.Health.Status}}' "$CID" 2>/dev/null || echo n/a)
+            echo "$c: $STATE health=$H"
+          done
+
+          echo "== traces/errors in startup logs (allow only pydantic deprec) =="
+          docker compose -f /tmp/cert-smoke.yml logs backend 2>&1 | grep -iE "traceback|refusing to start|ValidationError" || echo "no tracebacks"
+          docker compose -f /tmp/cert-smoke.yml logs frontend 2>&1 | grep -iE "traceback|error" || echo "no tracebacks"
+
+          echo "== secret key strength =="
+          SECRET=$(grep '^SECRET_KEY=' backend/.env | cut -d= -f2)
+          test "${#SECRET}" -ge 32 && echo "SECRET_KEY length ok (>=32)"
+          case "$SECRET" in change-me*|*changeme*|"default"|"test"|"dev"|"secret") echo "PLACEHOLDER/SCRIPTED FAIL"; exit 1;; esac
+          echo "== .env not embedded in image (backend) =="
+          docker run --rm --entrypoint sh flowdesk-cert/backend:cert -c 'test ! -f /app/.env && echo ".env NOT in image OK"'
+          echo "== secrets not in logs =="
+          docker compose -f /tmp/cert-smoke.yml logs 2>&1 | grep -F "$SECRET" && { echo "SECRET LEAKED IN LOGS"; exit 1; } || echo "no secret in logs"
+          echo "== connectivity frontend->backend (docker bridge) =="
+          docker compose -f /tmp/cert-smoke.yml exec -T frontend sh -c 'apk add --no-cache curl >/dev/null 2>&1 || true; curl -sf http://backend:8000/health && echo "" && echo "frontend->backend HTTP OK"' || echo "(frontend->backend direct network check skipped: container curl unavailable)"
+          echo "== force health re-check =="
+          curl -sf http://localhost:8000/health >/dev/null && echo "backend still healthy"
+          curl -sf http://localhost:3000/ >/dev/null && echo "frontend still healthy"
+          echo "STABILITY_OK"

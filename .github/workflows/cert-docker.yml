@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 env:
-  NEXT_PUBLIC_API_URL: ${{ inputs.api_url }}
+  NEXT_PUBLIC_API_URL: ${{ inputs.api_url || 'https://app.flowdesk.ai' }}
 
 jobs:
   cert:
@@ -81,10 +81,8 @@ jobs:
           file: frontend/Dockerfile
           push: false
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ inputs.api_url }}
+            NEXT_PUBLIC_API_URL=${{ inputs.api_url || 'https://app.flowdesk.ai' }}
           tags: flowdesk-cert/frontend:cert
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: F3 grep localhost in artifact (expect 0 in .next/public)
         run: |
@@ -99,7 +97,7 @@ jobs:
             fi
             echo "localhost:8000 occurrences = 0"
             echo "--- expecting real API URL present ---"
-            grep -rl "${{ inputs.api_url }}" /app/.next | head -5 || (echo "MISSING: ${{ inputs.api_url }} not found in .next"; exit 1)
+            grep -rl "${{ inputs.api_url || 'https://app.flowdesk.ai' }}" /app/.next | head -5 || (echo "MISSING: real API URL not found in .next"; exit 1)
           '
 
       # ============ F4 — docker compose config (production) ============
@@ -269,7 +267,7 @@ jobs:
           echo "$HTML" | grep -o 'src="[^"]*"' | head -3
           echo "== frontend bundle: no localhost API, real URL present =="
           docker run --rm --entrypoint sh flowdesk-cert/frontend:cert -c \
-            'grep -rl "http://localhost:8000" /app/.next 2>/dev/null || echo "NO localhost:8000 in .next"; grep -rl "${{ inputs.api_url }}" /app/.next | head -1'
+            'grep -rl "http://localhost:8000" /app/.next 2>/dev/null || echo "NO localhost:8000 in .next"; grep -rl "${{ inputs.api_url || 'https://app.flowdesk.ai' }}" /app/.next | head -1'
 
       # ============ F9/F10/F11 — stability + secrets ============
       - name: F9/F10/F11 Stability, connectivity, secrets

@@ -8,6 +8,8 @@ on:
         required: true
         default: "https://app.flowdesk.ai"
         type: string
+  push:
+    branches: ["ci/postgres-validation"]
 
 permissions:
   contents: read

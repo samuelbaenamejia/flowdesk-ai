@@ -136,7 +136,7 @@ jobs:
               pull_policy: never
               ports: ["8000:8000"]
               env_file:
-                - backend/.env
+                - $GITHUB_WORKSPACE/backend/.env
               healthcheck:
                 test: ["CMD", "curl", "--fail", "http://localhost:8000/health"]
                 interval: 5s

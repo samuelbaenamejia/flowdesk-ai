@@ -206,7 +206,7 @@ jobs:
           echo "== /health =="
           curl -s -w "\nHTTP %{http_code}\n" http://localhost:8000/health
 
-          INTERNAL_KEY=$(grep '^INTERNAL_API_KEY=' backend/.env | cut -d= -f2)
+          INTERNAL_API_KEY=$(grep '^INTERNAL_API_KEY=' backend/.env | cut -d= -f2)
 
           echo "== seed + login =="
           compose_file exec -T backend python -c '

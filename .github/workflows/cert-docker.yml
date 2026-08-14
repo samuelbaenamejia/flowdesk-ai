@@ -250,7 +250,7 @@ jobs:
           echo "== internal accepts correct key (expect 404 conversation) =="
           CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
             http://localhost:8000/api/v1/internal/conversations/00000000-0000-0000-0000-000000000000/trigger-ai \
-            -H "X-Internal-Key: $INTERNAL_API_KEY")
+            -H "X-Internal-Key: $INTERNAL_KEY")
           echo "HTTP $CODE (want 404: auth ok, conversation not found)"; test "$CODE" = "404"
 
       # ============ F8 — Frontend smoke ============
